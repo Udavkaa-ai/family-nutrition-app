@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'config/firebase_config.dart';
 import 'navigation/app_router.dart';
 import 'providers/auth_provider.dart';
+import 'providers/family_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +17,11 @@ class FamilyNutritionApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => FamilyProvider()),
+      ],
       child: Builder(
         builder: (context) => MaterialApp.router(
           title: 'Семейное питание',
