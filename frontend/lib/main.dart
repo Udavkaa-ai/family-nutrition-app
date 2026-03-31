@@ -6,6 +6,7 @@ import 'navigation/app_router.dart';
 import 'providers/auth_provider.dart';
 import 'providers/family_provider.dart';
 import 'providers/pantry_provider.dart';
+import 'providers/recipe_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,7 @@ class FamilyNutritionApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => FamilyProvider()),
         ChangeNotifierProvider(create: (_) => PantryProvider()),
+        ChangeNotifierProvider(create: (_) => RecipeProvider()),
       ],
       child: Builder(
         builder: (context) => MaterialApp.router(
