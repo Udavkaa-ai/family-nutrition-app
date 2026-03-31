@@ -1,117 +1,95 @@
 # 📍 CURRENT_TASK.md
 ## Текущий Этап Разработки
 
-**Последний обновлен:** 2025-03-31  
-**Текущая фаза:** ФАЗА 1  
-**Статус:** ГОТОВ К НАЧАЛУ 🟢
+**Последний обновлен:** 2026-03-31
+**Текущая фаза:** ФАЗА 1
+**Статус:** СПРИНТ 1.1 ЗАВЕРШЕН ✅ — ГОТОВ К СПРИНТУ 1.2 🟢
 
 ---
 
-## 🎯 ТЕКУЩИЙ СПРИНТ
+## ✅ ЗАВЕРШЕННЫЙ СПРИНТ
 
-### ФАЗА 1 СПРИНТ 1.1: Backend Setup
+### ФАЗА 1 СПРИНТ 1.1: Backend Setup — DONE
 
-**Цель:** Настроить Node.js backend с Express и Firebase Admin SDK
+- [x] **1.1.1** - Инициализация Node.js проекта
+- [x] **1.1.2** - Инициализация Express сервера
+- [x] **1.1.3** - Firebase Admin SDK интеграция
+- [x] **1.1.4** - Firestore Security Rules
+
+---
+
+## 🎯 СЛЕДУЮЩИЙ СПРИНТ
+
+### ФАЗА 1 СПРИНТ 1.2: Flutter Auth UI
+
+**Цель:** Настроить Flutter проект с Firebase и реализовать авторизацию
 
 **Список задач:**
 
-- [ ] **1.1.1** - Инициализация Node.js проекта
-  - Файлы: `package.json`, `.gitignore`
-  - Зависимости: express, firebase-admin, axios, cors, helmet, morgan, dotenv
-  
-- [ ] **1.1.2** - Инициализация Express сервера
-  - Файлы: `src/index.js`
-  - Middleware: cors, helmet, morgan
-  - Health check endpoint
+- [ ] **1.2.1** - Инициализация Flutter проекта
+  - Файлы: `frontend/pubspec.yaml`, `frontend/lib/main.dart`
+  - Зависимости: firebase_core, firebase_auth, provider, go_router
 
-- [ ] **1.1.3** - Firebase Admin SDK интеграция
-  - Файлы: `src/config/firebase.js`
-  - Инициализация Firebase Admin
-  - Экспорт db и auth объектов
+- [ ] **1.2.2** - Firebase конфигурация в Flutter
+  - Файлы: `frontend/lib/config/firebase_config.dart`
+  - FlutterFire CLI, google-services.json
 
-- [ ] **1.1.4** - Firestore Security Rules
-  - Файлы: `firebase/firestore.rules`
-  - Rules для всех collections
-  - Deploy на Firebase
+- [ ] **1.2.3** - Authentication Service
+  - Файлы: `frontend/lib/services/auth_service.dart`
+  - register, login, logout, currentUser
+
+- [ ] **1.2.4** - Auth Provider (State Management)
+  - Файлы: `frontend/lib/providers/auth_provider.dart`
+  - ChangeNotifier, authState stream
+
+- [ ] **1.2.5** - Navigation Setup
+  - Файлы: `frontend/lib/navigation/app_router.dart`
+  - go_router, redirect на login если не авторизован
+
+- [ ] **1.2.6** - Login Screen UI
+  - Файлы: `frontend/lib/screens/auth/login_screen.dart`
+  - Email + Password форма, валидация
+
+- [ ] **1.2.7** - Register Screen UI
+  - Файлы: `frontend/lib/screens/auth/register_screen.dart`
+  - Name + Email + Password форма
+
+- [ ] **1.2.8** - Main App Setup
+  - Файлы: обновить `frontend/lib/main.dart`
+  - ProviderScope, MaterialApp с роутером
 
 ---
 
-## 📝 ЧТО РАЗВИВАТЬ В ЭТУ СЕССИЮ
-
-### Запрос к Claude Code:
+## 📝 ЗАПРОС К CLAUDE CODE ДЛЯ СЛЕДУЮЩЕЙ СЕССИИ
 
 ```
-# ФАЗА 1 СПРИНТ 1.1 - Backend Setup
+# ФАЗА 1 СПРИНТ 1.2 - Flutter Auth UI
 
 [СКОПИРУЙ ВЕСЬ CLAUDE_INSTRUCTIONS.md]
 
 ---
 
-Смотря на задачи в CURRENT_TASK.md, разработаем ФАЗА 1 СПРИНТ 1.1.
+Смотря на CURRENT_TASK.md, разработаем ФАЗА 1 СПРИНТ 1.2.
 
-Начинаем с Задачи 1.1.1: Инициализация Node.js проекта
+Backend (Sprint 1.1) уже готов и запушен. Начинаем Flutter фронтенд.
+
+Задача 1.2.1: Инициализация Flutter проекта
 
 Нужно создать:
-- Папку family-nutrition-app/backend
-- package.json с нужными скриптами и зависимостями
-- .env.example с всеми переменными окружения
-- .gitignore (игнорить node_modules, .env, .DS_Store)
-- README.md в backend папке
-- Начальную структуру: src/, test/ папки
+- frontend/pubspec.yaml с зависимостями (firebase_core, firebase_auth, provider, go_router, http)
+- frontend/lib/main.dart (заглушка)
+- Структуру папок: models/, screens/auth/, providers/, services/, widgets/, utils/, navigation/
 
-Дай полный готовый код и команды для запуска.
+Дай полный готовый код.
 ```
 
 ---
 
 ## 🔗 ССЫЛКА НА ИНСТРУКЦИИ
 
-Детальные инструкции для текущего спринта находятся в:  
-→ `/claude_sessions/phase1_sprint1.md`
+Детальные инструкции для текущего спринта:
+→ `/phase1_sprint1.md`
 
 ---
 
-## 📊 ПРОВЕРКА ПРОГРЕССА
-
-После завершения Задачи 1.1.1, ты должен иметь:
-- ✅ Папка `backend/` с структурой
-- ✅ `package.json` с зависимостями
-- ✅ `.env.example` готов для заполнения
-- ✅ `.gitignore` исключает нужные файлы
-- ✅ Git репозиторий инициализирован
-- ✅ Коммит: `feat: ФАЗА 1 Task 1.1.1 - Node.js project initialization`
-
----
-
-## 🚀 ПОСЛЕ ЭТОГО СПРИНТА
-
-Когда закончишь все 4 задачи ФАЗА 1 СПРИНТ 1.1:
-
-1. **Код готов к запуску:**
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   # Server running on http://localhost:3000
-   ```
-
-2. **Файл CURRENT_TASK.md обновится на:**
-   - ФАЗА 1 СПРИНТ 1.2: Flutter Auth UI
-
-3. **Файл PROGRESS.md обновится с:**
-   - ✅ ФАЗА 1 СПРИНТ 1.1 завершен
-   - Осталось: 7 задач в ФАЗА 1.2
-
----
-
-## 💡 СОВЕТЫ
-
-- Работаешь с телефона? Просто копируй инструкции в Claude Code
-- Забыл что делать? Посмотри `/claude_sessions/phase1_sprint1.md`
-- Нужна помощь? Спроси в начало сессии с этим файлом
-
----
-
-**Статус: Готов начать разработку! 🎉**
-
-Следующий шаг: Скопируй CLAUDE_INSTRUCTIONS.md в Claude Code и начни Задачу 1.1.1
+**Статус: Готов к СПРИНТУ 1.2! 🚀**
