@@ -11,6 +11,7 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const familyRoutes = require('./routes/families');
+const pantryRoutes = require('./routes/pantry');
 const recipeRoutes = require('./routes/recipes');
 const shoppingListRoutes = require('./routes/shopping-lists');
 const { notFound, errorHandler } = require('./middleware/error-handler');
@@ -41,6 +42,7 @@ app.get('/api/status', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/families', familyRoutes);
+app.use('/api/pantry', pantryRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/shopping-lists', shoppingListRoutes);
 
