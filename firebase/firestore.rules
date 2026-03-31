@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────────
+
+    // Check that the request is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Check that the authenticated user belongs to the given family
+    function isInFamily(familyId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/families/$(familyId))
+          .data.members[request.auth.uid] == true;
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+    // Each user can only read/write their own document
+    match /users/{userId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // ── Families ──────────────────────────────────────────────────────────────
+    // Members can read; creation/updates are done server-side only
+    match /families/{familyId} {
+      allow read: if isInFamily(familyId);
+      allow write: if false;
+    }
+
+    // ── Family Members ────────────────────────────────────────────────────────
+    // Any member of the same family can read/write member profiles
+    match /family_members/{memberId} {
+      allow read, write: if isInFamily(resource.data.familyId);
+    }
+
+    // ── Pantry ────────────────────────────────────────────────────────────────
+    match /pantry/{pantryId} {
+      allow read, write: if isInFamily(resource.data.familyId);
+    }
+
+    // ── Recipes ───────────────────────────────────────────────────────────────
+    // Family members can read; writing is done server-side (AI generation)
+    match /recipes/{recipeId} {
+      allow read: if isInFamily(resource.data.familyId);
+      allow write: if isInFamily(resource.data.familyId);
+    }
+
+    // ── Shopping Lists ────────────────────────────────────────────────────────
+    match /shopping_lists/{listId} {
+      allow read, write: if isInFamily(resource.data.familyId);
+    }
+
+    // ── Fallback: deny everything else ────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
