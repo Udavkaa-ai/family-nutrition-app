@@ -9,6 +9,7 @@ import '../family/family_members_screen.dart';
 import '../pantry/pantry_screen.dart';
 import '../recipe/recipe_request_screen.dart';
 import '../recipe/recipe_list_screen.dart';
+import '../shopping_list/shopping_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const PantryScreen(),
       const RecipeRequestScreen(),
       const RecipeListScreen(),
+      const ShoppingListScreen(),
     ];
 
     return Scaffold(
@@ -56,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.kitchen), label: 'Кладовая'),
           NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Рецепты'),
           NavigationDestination(icon: Icon(Icons.menu_book), label: 'История'),
+          NavigationDestination(icon: Icon(Icons.shopping_cart), label: 'Покупки'),
         ],
       ),
     );
