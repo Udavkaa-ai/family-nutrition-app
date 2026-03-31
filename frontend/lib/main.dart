@@ -1,0 +1,34 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'config/firebase_config.dart';
+import 'navigation/app_router.dart';
+import 'providers/auth_provider.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseConfig.initialize();
+  runApp(const FamilyNutritionApp());
+}
+
+class FamilyNutritionApp extends StatelessWidget {
+  const FamilyNutritionApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: Builder(
+        builder: (context) => MaterialApp.router(
+          title: 'Семейное питание',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+            useMaterial3: true,
+          ),
+          routerConfig: AppRouter.router(context),
+        ),
+      ),
+    );
+  }
+}
