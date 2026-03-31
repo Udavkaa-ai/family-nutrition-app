@@ -8,6 +8,7 @@ import 'providers/family_provider.dart';
 import 'providers/pantry_provider.dart';
 import 'providers/recipe_provider.dart';
 import 'providers/shopping_list_provider.dart';
+import 'utils/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,10 +33,7 @@ class FamilyNutritionApp extends StatelessWidget {
         builder: (context) => MaterialApp.router(
           title: 'Семейное питание',
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-            useMaterial3: true,
-          ),
+          theme: AppTheme.light,
           routerConfig: AppRouter.router(context),
         ),
       ),

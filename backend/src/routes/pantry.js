@@ -65,10 +65,12 @@ router.get('/:familyId', authenticate, async (req, res, next) => {
 router.post('/:familyId/items', authenticate, async (req, res, next) => {
   try {
     const { familyId } = req.params;
-    await assertFamilyMember(req.uid, familyId);
-
     const { name, quantity, unit } = req.body;
+
+    // Validate input before hitting Firestore
     if (!name?.trim()) return res.status(400).json({ error: 'Item name is required' });
+
+    await assertFamilyMember(req.uid, familyId);
 
     const itemId = db.collection('_').doc().id; // generate unique id
     const item = {
