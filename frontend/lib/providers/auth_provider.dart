@@ -14,7 +14,21 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider({AuthService? authService})
       : _authService = authService ?? AuthService() {
     // Listen to Firebase auth state
-    _authService.authStateChanges.listen(_onAuthStateChanged);
+    _authService.authStateChanges.listen(
+      _onAuthStateChanged,
+      onError: (_) {
+        // Firebase not initialized — treat as unauthenticated
+        _status = AuthStatus.unauthenticated;
+        notifyListeners();
+      },
+    );
+    // Safety timeout: if auth state hasn't resolved in 5s, go to login
+    Future.delayed(const Duration(seconds: 5), () {
+      if (_status == AuthStatus.unknown) {
+        _status = AuthStatus.unauthenticated;
+        notifyListeners();
+      }
+    });
   }
 
   AuthStatus get status => _status;
