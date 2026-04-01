@@ -41,14 +41,9 @@ class FirebaseConfig {
       );
 
   /// Call once in main() before runApp().
+  /// Always uses explicit options so Firebase works regardless of
+  /// whether google-services.json package name matches the APK.
   static Future<void> initialize() async {
-    // On Android/iOS google-services.json / GoogleService-Info.plist is used
-    // automatically by the FlutterFire plugins — no manual options needed.
-    // On web we pass options explicitly.
-    if (kIsWeb) {
-      await Firebase.initializeApp(options: options);
-    } else {
-      await Firebase.initializeApp();
-    }
+    await Firebase.initializeApp(options: options);
   }
 }

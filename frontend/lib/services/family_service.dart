@@ -3,8 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/family_member.dart';
 
 class FamilyService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Lazy getters — safe to instantiate before Firebase.initializeApp().
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
 
   String? get _uid => _auth.currentUser?.uid;
 

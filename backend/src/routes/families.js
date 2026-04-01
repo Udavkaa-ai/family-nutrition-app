@@ -53,8 +53,8 @@ router.post('/', authenticate, async (req, res) => {
     createdAt: new Date(),
   });
 
-  // Update user's familyId
-  batch.update(db.collection('users').doc(uid), { familyId: familyRef.id });
+  // Update user's familyId (set+merge creates the doc if it doesn't exist yet)
+  batch.set(db.collection('users').doc(uid), { familyId: familyRef.id }, { merge: true });
 
   await batch.commit();
 
@@ -91,7 +91,7 @@ router.post('/join', authenticate, async (req, res) => {
   const batch = db.batch();
 
   batch.update(familyDoc.ref, { [`members.${uid}`]: true });
-  batch.update(db.collection('users').doc(uid), { familyId: familyDoc.id });
+  batch.set(db.collection('users').doc(uid), { familyId: familyDoc.id }, { merge: true });
 
   await batch.commit();
 

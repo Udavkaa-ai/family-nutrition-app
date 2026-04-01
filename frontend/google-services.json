@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "427590420240",
+    "project_id": "family-nutrition-app-4a4ae",
+    "storage_bucket": "family-nutrition-app-4a4ae.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:427590420240:android:779fe495b715d97f1f8795",
+        "android_client_info": {
+          "package_name": "com.example.family_nutrition_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "427590420240-6bbqvl8lh85b3pjrinckltnpin9qm3hu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaE5CufxkIjt0hsqh2Xu3706mnhYrKMyg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "427590420240-6bbqvl8lh85b3pjrinckltnpin9qm3hu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

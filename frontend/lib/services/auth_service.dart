@@ -2,13 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  // Lazy getters — only accessed when a method is called,
+  // safe to instantiate before Firebase.initializeApp().
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
 
-  /// Stream of auth state changes (null = logged out).
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  /// Currently signed-in user, or null.
   User? get currentUser => _auth.currentUser;
 
   /// Register a new user and create their Firestore document.
@@ -25,16 +24,18 @@ class AuthService {
     final user = credential.user;
     if (user == null) return null;
 
-    // Update display name
     await user.updateDisplayName(name);
 
-    // Create /users/{uid} document
-    await _db.collection('users').doc(user.uid).set({
-      'email': email,
-      'name': name,
-      'familyId': null,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    // Firestore write is best-effort: auth succeeds even if Firestore
+    // isn't set up yet or security rules block the write.
+    try {
+      await _db.collection('users').doc(user.uid).set({
+        'email': email,
+        'name': name,
+        'familyId': null,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
 
     return user;
   }

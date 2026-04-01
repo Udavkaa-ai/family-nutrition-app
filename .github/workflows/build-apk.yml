@@ -30,21 +30,18 @@ jobs:
         run: flutter create . --platforms android
 
       - name: Copy google-services.json
-        working-directory: frontend/android/app
-        run: |
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
+        run: cp frontend/google-services.json frontend/android/app/google-services.json
 
-      - name: Set minSdkVersion to 23
+      - name: Set minSdkVersion and applicationId
         working-directory: frontend/android/app
         run: |
-          echo "=== build.gradle before ==="
-          grep -n "minSdk" build.gradle || echo "not found in build.gradle"
           sed -i 's/minSdkVersion flutter\.minSdkVersion/minSdkVersion 23/' build.gradle
           sed -i 's/minSdk = flutter\.minSdkVersion/minSdk = 23/' build.gradle
           sed -i 's/minSdk = 21/minSdk = 23/' build.gradle
           sed -i 's/minSdkVersion 21/minSdkVersion 23/' build.gradle
-          echo "=== build.gradle after ==="
-          grep -n "minSdk" build.gradle || echo "still not found"
+          sed -i 's/applicationId .*/applicationId "com.example.family_nutrition_app"/' build.gradle
+          echo "=== build.gradle check ==="
+          grep -E "minSdk|applicationId" build.gradle
 
       - name: Get dependencies
         working-directory: frontend
@@ -55,11 +52,11 @@ jobs:
         run: |
           flutter build apk --release \
             --dart-define=BACKEND_API_URL=https://family-nutrition-app-production.up.railway.app \
-            --dart-define=FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }} \
-            --dart-define=FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }} \
-            --dart-define=FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }} \
-            --dart-define=FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} \
-            --dart-define=FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+            --dart-define=FIREBASE_PROJECT_ID=family-nutrition-app-4a4ae \
+            --dart-define=FIREBASE_API_KEY=AIzaSyAaE5CufxkIjt0hsqh2Xu3706mnhYrKMyg \
+            --dart-define=FIREBASE_AUTH_DOMAIN=family-nutrition-app-4a4ae.firebaseapp.com \
+            --dart-define=FIREBASE_APP_ID=1:427590420240:android:779fe495b715d97f1f8795 \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID=427590420240
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
