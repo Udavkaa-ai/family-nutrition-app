@@ -34,17 +34,27 @@ jobs:
         run: |
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
 
-      - name: Set minSdkVersion to 23
+      - name: Sync applicationId with google-services.json + set minSdkVersion
         working-directory: frontend/android/app
         run: |
-          echo "=== build.gradle before ==="
-          grep -n "minSdk" build.gradle || echo "not found in build.gradle"
+          # Extract package name from google-services.json and set applicationId
+          PACKAGE=$(python3 -c "
+          import json, sys
+          d = json.load(open('google-services.json'))
+          print(d['client'][0]['client_info']['android_client_info']['package_name'])
+          ")
+          echo "Package name from google-services.json: $PACKAGE"
+          sed -i "s/applicationId .*/applicationId \"$PACKAGE\"/" build.gradle
+          echo "=== applicationId after ==="
+          grep "applicationId" build.gradle
+
+          # Set minSdkVersion to 23
           sed -i 's/minSdkVersion flutter\.minSdkVersion/minSdkVersion 23/' build.gradle
           sed -i 's/minSdk = flutter\.minSdkVersion/minSdk = 23/' build.gradle
           sed -i 's/minSdk = 21/minSdk = 23/' build.gradle
           sed -i 's/minSdkVersion 21/minSdkVersion 23/' build.gradle
-          echo "=== build.gradle after ==="
-          grep -n "minSdk" build.gradle || echo "still not found"
+          echo "=== minSdk after ==="
+          grep -n "minSdk" build.gradle
 
       - name: Get dependencies
         working-directory: frontend
