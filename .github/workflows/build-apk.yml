@@ -34,6 +34,10 @@ jobs:
         run: |
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
 
+      - name: Set minSdkVersion to 23
+        working-directory: frontend/android/app
+        run: sed -i 's/minSdk = 21/minSdk = 23/' build.gradle
+
       - name: Get dependencies
         working-directory: frontend
         run: flutter pub get
