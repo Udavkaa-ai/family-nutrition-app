@@ -24,16 +24,18 @@ class AuthService {
     final user = credential.user;
     if (user == null) return null;
 
-    // Update display name
     await user.updateDisplayName(name);
 
-    // Create /users/{uid} document
-    await _db.collection('users').doc(user.uid).set({
-      'email': email,
-      'name': name,
-      'familyId': null,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    // Firestore write is best-effort: auth succeeds even if Firestore
+    // isn't set up yet or security rules block the write.
+    try {
+      await _db.collection('users').doc(user.uid).set({
+        'email': email,
+        'name': name,
+        'familyId': null,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
 
     return user;
   }

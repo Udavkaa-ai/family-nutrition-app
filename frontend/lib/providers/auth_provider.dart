@@ -68,6 +68,10 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = _mapFirebaseError(e.code);
       notifyListeners();
       return false;
+    } catch (e) {
+      _errorMessage = 'Ошибка: ${e.toString().split(']').last.trim()}';
+      notifyListeners();
+      return false;
     }
   }
 
@@ -81,6 +85,10 @@ class AuthProvider extends ChangeNotifier {
       return true;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _mapFirebaseError(e.code);
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Ошибка входа. Проверьте соединение.';
       notifyListeners();
       return false;
     }
