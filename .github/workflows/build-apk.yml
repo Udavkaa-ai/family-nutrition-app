@@ -36,7 +36,7 @@ jobs:
 
       - name: Set minSdkVersion to 23
         working-directory: frontend/android/app
-        run: sed -i 's/minSdk = 21/minSdk = 23/' build.gradle
+        run: sed -i 's/minSdk = .*/minSdk = 23/' build.gradle
 
       - name: Get dependencies
         working-directory: frontend
