@@ -1,117 +1,76 @@
 # 📍 CURRENT_TASK.md
 ## Текущий Этап Разработки
 
-**Последний обновлен:** 2025-03-31  
-**Текущая фаза:** ФАЗА 1  
-**Статус:** ГОТОВ К НАЧАЛУ 🟢
+**Последний обновлен:** 2026-03-31
+**Текущая фаза:** ФАЗА 1
+**Статус:** СПРИНТ 1.1 ✅ СПРИНТ 1.2 ✅ — ГОТОВ К ФАЗЕ 2 🟢
 
 ---
 
-## 🎯 ТЕКУЩИЙ СПРИНТ
+## ✅ ЗАВЕРШЁННЫЕ СПРИНТЫ
 
-### ФАЗА 1 СПРИНТ 1.1: Backend Setup
+### ФАЗА 1 СПРИНТ 1.1: Backend Setup — DONE
+- [x] 1.1.1 — Инициализация Node.js проекта
+- [x] 1.1.2 — Инициализация Express сервера
+- [x] 1.1.3 — Firebase Admin SDK интеграция
+- [x] 1.1.4 — Firestore Security Rules
 
-**Цель:** Настроить Node.js backend с Express и Firebase Admin SDK
+### ФАЗА 1 СПРИНТ 1.2: Flutter Auth UI — DONE
+- [x] 1.2.1 — Инициализация Flutter проекта
+- [x] 1.2.2 — Firebase конфигурация в Flutter
+- [x] 1.2.3 — Authentication Service
+- [x] 1.2.4 — Auth Provider (State Management)
+- [x] 1.2.5 — Navigation Setup
+- [x] 1.2.6 — Login Screen UI
+- [x] 1.2.7 — Register Screen UI
+- [x] 1.2.8 — Main App Setup
+
+---
+
+## 🎯 СЛЕДУЮЩИЙ СПРИНТ
+
+### ФАЗА 2: Family Management
+
+**Цель:** Создание и управление семьёй, профили членов семьи
 
 **Список задач:**
 
-- [ ] **1.1.1** - Инициализация Node.js проекта
-  - Файлы: `package.json`, `.gitignore`
-  - Зависимости: express, firebase-admin, axios, cors, helmet, morgan, dotenv
-  
-- [ ] **1.1.2** - Инициализация Express сервера
-  - Файлы: `src/index.js`
-  - Middleware: cors, helmet, morgan
-  - Health check endpoint
+- [ ] **2.1.1** — Family Create/Join Backend
+  - `backend/src/routes/users.js` — POST /api/families, POST /api/families/join
+  - Firestore: /families, /family_members
 
-- [ ] **1.1.3** - Firebase Admin SDK интеграция
-  - Файлы: `src/config/firebase.js`
-  - Инициализация Firebase Admin
-  - Экспорт db и auth объектов
+- [ ] **2.1.2** — Family Management UI
+  - `frontend/lib/screens/home/home_screen.dart` — экран выбора/создания семьи
 
-- [ ] **1.1.4** - Firestore Security Rules
-  - Файлы: `firebase/firestore.rules`
-  - Rules для всех collections
-  - Deploy на Firebase
+- [ ] **2.1.3** — Member Preferences Management
+  - `frontend/lib/screens/profile/` — экран настройки предпочтений члена семьи
+  - dietaryPreferences, dislikedIngredients, preferredCuisines, cookingLevel
+
+- [ ] **2.2.1** — Family Sync Services
+  - `frontend/lib/services/family_service.dart`
+  - Реалтайм синхронизация через Firestore streams
 
 ---
 
-## 📝 ЧТО РАЗВИВАТЬ В ЭТУ СЕССИЮ
-
-### Запрос к Claude Code:
+## 📝 ЗАПРОС К CLAUDE CODE ДЛЯ СЛЕДУЮЩЕЙ СЕССИИ
 
 ```
-# ФАЗА 1 СПРИНТ 1.1 - Backend Setup
+# ФАЗА 2 — Family Management
 
-[СКОПИРУЙ ВЕСЬ CLAUDE_INSTRUCTIONS.md]
+ФАЗА 1 полностью готова (backend + Flutter auth).
+Начинаем ФАЗА 2.
 
----
+Задача 2.1.1: Family Create/Join Backend
 
-Смотря на задачи в CURRENT_TASK.md, разработаем ФАЗА 1 СПРИНТ 1.1.
+Нужно создать в backend:
+- POST /api/families — создать семью, добавить создателя как члена
+- POST /api/families/join — присоединиться по invite коду
+- GET /api/families/:familyId — данные семьи + члены
+- POST /api/families/:familyId/members — добавить члена семьи (ребёнок/пожилой)
 
-Начинаем с Задачи 1.1.1: Инициализация Node.js проекта
-
-Нужно создать:
-- Папку family-nutrition-app/backend
-- package.json с нужными скриптами и зависимостями
-- .env.example с всеми переменными окружения
-- .gitignore (игнорить node_modules, .env, .DS_Store)
-- README.md в backend папке
-- Начальную структуру: src/, test/ папки
-
-Дай полный готовый код и команды для запуска.
+Дай полный код с Firestore интеграцией.
 ```
 
 ---
 
-## 🔗 ССЫЛКА НА ИНСТРУКЦИИ
-
-Детальные инструкции для текущего спринта находятся в:  
-→ `/claude_sessions/phase1_sprint1.md`
-
----
-
-## 📊 ПРОВЕРКА ПРОГРЕССА
-
-После завершения Задачи 1.1.1, ты должен иметь:
-- ✅ Папка `backend/` с структурой
-- ✅ `package.json` с зависимостями
-- ✅ `.env.example` готов для заполнения
-- ✅ `.gitignore` исключает нужные файлы
-- ✅ Git репозиторий инициализирован
-- ✅ Коммит: `feat: ФАЗА 1 Task 1.1.1 - Node.js project initialization`
-
----
-
-## 🚀 ПОСЛЕ ЭТОГО СПРИНТА
-
-Когда закончишь все 4 задачи ФАЗА 1 СПРИНТ 1.1:
-
-1. **Код готов к запуску:**
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   # Server running on http://localhost:3000
-   ```
-
-2. **Файл CURRENT_TASK.md обновится на:**
-   - ФАЗА 1 СПРИНТ 1.2: Flutter Auth UI
-
-3. **Файл PROGRESS.md обновится с:**
-   - ✅ ФАЗА 1 СПРИНТ 1.1 завершен
-   - Осталось: 7 задач в ФАЗА 1.2
-
----
-
-## 💡 СОВЕТЫ
-
-- Работаешь с телефона? Просто копируй инструкции в Claude Code
-- Забыл что делать? Посмотри `/claude_sessions/phase1_sprint1.md`
-- Нужна помощь? Спроси в начало сессии с этим файлом
-
----
-
-**Статус: Готов начать разработку! 🎉**
-
-Следующий шаг: Скопируй CLAUDE_INSTRUCTIONS.md в Claude Code и начни Задачу 1.1.1
+**Статус: ФАЗА 1 завершена! Готов к ФАЗЕ 2 🚀**
