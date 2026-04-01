@@ -15,33 +15,38 @@ Future<void> main() async {
   try {
     await FirebaseConfig.initialize();
   } catch (e) {
-    // Firebase init failed (e.g. missing google-services.json)
-    // App will still launch but auth won't work
     debugPrint('Firebase init error: $e');
   }
-  runApp(const FamilyNutritionApp());
+  final authProvider = AuthProvider();
+  runApp(FamilyNutritionApp(authProvider: authProvider));
 }
 
-class FamilyNutritionApp extends StatelessWidget {
-  const FamilyNutritionApp({super.key});
+class FamilyNutritionApp extends StatefulWidget {
+  final AuthProvider authProvider;
+  const FamilyNutritionApp({super.key, required this.authProvider});
+
+  @override
+  State<FamilyNutritionApp> createState() => _FamilyNutritionAppState();
+}
+
+class _FamilyNutritionAppState extends State<FamilyNutritionApp> {
+  late final router = AppRouter.create(widget.authProvider);
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: widget.authProvider),
         ChangeNotifierProvider(create: (_) => FamilyProvider()),
         ChangeNotifierProvider(create: (_) => PantryProvider()),
         ChangeNotifierProvider(create: (_) => RecipeProvider()),
         ChangeNotifierProvider(create: (_) => ShoppingListProvider()),
       ],
-      child: Builder(
-        builder: (context) => MaterialApp.router(
-          title: 'Семейное питание',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          routerConfig: AppRouter.router(context),
-        ),
+      child: MaterialApp.router(
+        title: 'Семейное питание',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        routerConfig: router,
       ),
     );
   }
