@@ -31,10 +31,12 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/status', (req, res) => {
+  const { auth } = require('./config/firebase');
   res.json({
     status: 'OK',
     version: process.env.npm_package_version || '0.1.0',
     env: process.env.NODE_ENV || 'development',
+    firebase: auth ? 'ready' : 'not initialized',
   });
 });
 
