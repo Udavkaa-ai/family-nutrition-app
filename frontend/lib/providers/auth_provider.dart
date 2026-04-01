@@ -5,7 +5,7 @@ import '../services/auth_service.dart';
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _authService;
+  final AuthService? _authService;
 
   AuthStatus _status = AuthStatus.unknown;
   User? _user;
@@ -13,16 +13,29 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider({AuthService? authService})
       : _authService = authService ?? AuthService() {
-    // Listen to Firebase auth state
-    _authService.authStateChanges.listen(
-      _onAuthStateChanged,
-      onError: (_) {
-        // Firebase not initialized — treat as unauthenticated
-        _status = AuthStatus.unauthenticated;
-        notifyListeners();
-      },
-    );
-    // Safety timeout: if auth state hasn't resolved in 5s, go to login
+    _init();
+  }
+
+  void _init() {
+    if (_authService == null) {
+      _status = AuthStatus.unauthenticated;
+      return;
+    }
+    try {
+      _authService!.authStateChanges.listen(
+        _onAuthStateChanged,
+        onError: (_) {
+          _status = AuthStatus.unauthenticated;
+          notifyListeners();
+        },
+      );
+    } catch (_) {
+      // Firebase not available — go straight to login
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return;
+    }
+    // Safety timeout: if auth hasn't resolved in 5 s, go to login
     Future.delayed(const Duration(seconds: 5), () {
       if (_status == AuthStatus.unknown) {
         _status = AuthStatus.unauthenticated;
@@ -49,7 +62,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _clearError();
     try {
-      await _authService.register(name: name, email: email, password: password);
+      await _authService!.register(name: name, email: email, password: password);
       return true;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _mapFirebaseError(e.code);
@@ -64,7 +77,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _clearError();
     try {
-      await _authService.login(email: email, password: password);
+      await _authService!.login(email: email, password: password);
       return true;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _mapFirebaseError(e.code);
@@ -74,13 +87,13 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _authService.logout();
+    await _authService?.logout();
   }
 
   Future<bool> resetPassword(String email) async {
     _clearError();
     try {
-      await _authService.resetPassword(email);
+      await _authService!.resetPassword(email);
       return true;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _mapFirebaseError(e.code);

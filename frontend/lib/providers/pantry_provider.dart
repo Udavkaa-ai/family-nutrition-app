@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../models/pantry_item.dart';
 import '../services/pantry_service.dart';
@@ -46,7 +46,7 @@ class PantryProvider extends ChangeNotifier {
   }) async {
     _clearError();
     try {
-      final id = FirebaseFirestore.instance.collection('_').doc().id;
+      final id = _generateId();
       await _service.addItem(
         familyId,
         PantryItem(id: id, name: name.trim(), quantity: quantity, unit: unit.trim()),
@@ -81,6 +81,12 @@ class PantryProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  String _generateId() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final rand = Random.secure();
+    return List.generate(20, (_) => chars[rand.nextInt(chars.length)]).join();
   }
 
   void _clearError() {

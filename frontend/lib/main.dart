@@ -17,7 +17,13 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Firebase init error: $e');
   }
-  final authProvider = AuthProvider();
+  late final AuthProvider authProvider;
+  try {
+    authProvider = AuthProvider();
+  } catch (e) {
+    debugPrint('AuthProvider init error: $e');
+    authProvider = AuthProvider(authService: null);
+  }
   runApp(FamilyNutritionApp(authProvider: authProvider));
 }
 

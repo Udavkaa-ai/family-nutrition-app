@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/pantry_item.dart';
 
 class PantryService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  // Lazy getter — safe to instantiate before Firebase.initializeApp().
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
 
   /// Real-time stream of pantry items for the given family.
   Stream<List<PantryItem>> itemsStream(String familyId) {
