@@ -23,7 +23,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
           ),
         ),
-        cardTheme: const CardThemeData(
+        cardTheme: const CardTheme(
           elevation: 1,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(

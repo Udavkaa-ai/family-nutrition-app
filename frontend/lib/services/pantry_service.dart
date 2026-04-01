@@ -24,7 +24,7 @@ class PantryService {
   Future<DocumentReference> _getPantryRef(String familyId) async {
     final snap = await _db
         .collection('pantry')
-        .where('familyId', '==', familyId)
+        .where('familyId', isEqualTo: familyId)
         .limit(1)
         .get();
     if (snap.docs.isNotEmpty) return snap.docs.first.reference;

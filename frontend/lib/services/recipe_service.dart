@@ -7,7 +7,7 @@ import '../models/recipe.dart';
 class RecipeService {
   final String _base = FirebaseConfig.backendUrl;
 
-  Future<String?> _token() => FirebaseAuth.instance.currentUser?.getIdToken();
+  Future<String?> _token() async => await FirebaseAuth.instance.currentUser?.getIdToken();
 
   Future<Map<String, String>> _headers() async => {
         'Content-Type': 'application/json',
