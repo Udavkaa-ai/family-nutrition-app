@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:427590420240:android:779fe495b715d97f1f8795",
         "android_client_info": {
-          "package_name": "COM.EXAMPLE.FAMILY_NUTRITION_APP"
+          "package_name": "com.example.family_nutrition_app"
         }
       },
       "oauth_client": [
