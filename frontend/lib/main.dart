@@ -12,7 +12,13 @@ import 'utils/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FirebaseConfig.initialize();
+  try {
+    await FirebaseConfig.initialize();
+  } catch (e) {
+    // Firebase init failed (e.g. missing google-services.json)
+    // App will still launch but auth won't work
+    debugPrint('Firebase init error: $e');
+  }
   runApp(const FamilyNutritionApp());
 }
 
