@@ -49,7 +49,6 @@ jobs:
           sed -i 's/minSdk = flutter\.minSdkVersion/minSdk = 23/' build.gradle
           sed -i 's/minSdk = 21/minSdk = 23/' build.gradle
           sed -i 's/minSdkVersion 21/minSdkVersion 23/' build.gradle
-          # Ensure compileSdkVersion is set explicitly (required by some plugins)
           sed -i 's/compileSdk = flutter\.compileSdkVersion/compileSdk = 34/' build.gradle
           sed -i 's/compileSdkVersion flutter\.compileSdkVersion/compileSdkVersion 34/' build.gradle
           sed -i 's/applicationId .*/applicationId "com.example.family_nutrition_app"/' build.gradle
@@ -59,7 +58,6 @@ jobs:
       - name: Add Android permissions (mic + camera)
         run: |
           python3 -c "
-          import re
           path = 'frontend/android/app/src/main/AndroidManifest.xml'
           with open(path, 'r') as f:
               content = f.read()
@@ -75,9 +73,41 @@ jobs:
           print('Permissions added successfully')
           "
 
+      - name: Set app display name
+        run: |
+          STRINGS="frontend/android/app/src/main/res/values/strings.xml"
+          # Use python for reliable Unicode (Cyrillic) replacement
+          python3 -c "
+          path = '$STRINGS'
+          with open(path, 'r') as f:
+              c = f.read()
+          import re
+          c = re.sub(r'<string name=\"app_name\">.*?</string>',
+                     '<string name=\"app_name\">Питание семьи</string>', c)
+          with open(path, 'w') as f:
+              f.write(c)
+          print('App name set')
+          "
+          grep app_name "$STRINGS"
+
+      - name: Generate app icon
+        run: |
+          mkdir -p frontend/assets
+          # Green plate icon: green bg → white outer circle → dark-green inner circle
+          convert -size 512x512 xc:'#4CAF50' \
+            -fill white       -draw "circle 256,256 256,55"  \
+            -fill '#2E7D32'   -draw "circle 256,256 256,112" \
+            -fill '#4CAF50'   -draw "circle 256,256 256,148" \
+            frontend/assets/icon.png
+          echo "Icon size: $(wc -c < frontend/assets/icon.png) bytes"
+
       - name: Get dependencies
         working-directory: frontend
         run: flutter pub get
+
+      - name: Generate launcher icons
+        working-directory: frontend
+        run: dart run flutter_launcher_icons
 
       - name: Build APK
         working-directory: frontend

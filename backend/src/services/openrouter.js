@@ -105,51 +105,65 @@ const generateRecipes = async ({ familyMembers, cookTime, mealType, pantryItems,
  * @returns {Promise<Array<{name: string, quantity: number, unit: string}>>}
  */
 const analyzePantryPhoto = async (base64Image) => {
-  // Use the same model as text generation — gemini-3.1-flash-lite-preview supports vision
-  const model = process.env.OPENROUTER_MODEL || 'google/gemini-3.1-flash-lite-preview';
+  // gemini-flash-1.5 is a well-tested vision model on OpenRouter.
+  // Override with OPENROUTER_VISION_MODEL env var if needed.
+  const model = process.env.OPENROUTER_VISION_MODEL || 'google/gemini-flash-1.5';
 
   logger.debug(`Analyzing pantry photo with model: ${model}`);
 
-  const response = await axios.post(
-    OPENROUTER_URL,
-    {
-      model,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
-            },
-            {
-              type: 'text',
-              text: 'Определи все продукты питания на этом фото (кладовая, холодильник, полка с едой). Верни ТОЛЬКО валидный JSON массив объектов с полями: name (название по-русски), quantity (число), unit (единица: г, кг, мл, л, шт, уп, пач). Пример: [{"name":"Молоко","quantity":1,"unit":"л"},{"name":"Яйца","quantity":6,"unit":"шт"},{"name":"Масло сливочное","quantity":200,"unit":"г"}]. Только JSON массив, без пояснений.',
-            },
-          ],
-        },
-      ],
-      max_tokens: 1000,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5000',
-        'X-Title': 'Family Nutrition Advisor',
+  let response;
+  try {
+    response = await axios.post(
+      OPENROUTER_URL,
+      {
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+              },
+              {
+                type: 'text',
+                text: 'Определи все продукты питания на этом фото (кладовая, холодильник, полка с едой). Верни ТОЛЬКО валидный JSON массив объектов с полями: name (название по-русски), quantity (число), unit (единица: г, кг, мл, л, шт, уп, пач). Пример: [{"name":"Молоко","quantity":1,"unit":"л"},{"name":"Яйца","quantity":6,"unit":"шт"},{"name":"Масло сливочное","quantity":200,"unit":"г"}]. Только JSON массив, без пояснений.',
+              },
+            ],
+          },
+        ],
+        max_tokens: 1000,
       },
-      timeout: 30000,
-    }
-  );
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5000',
+          'X-Title': 'Family Nutrition Advisor',
+        },
+        timeout: 30000,
+      }
+    );
+  } catch (err) {
+    // Surface the actual OpenRouter error message instead of generic "network error"
+    const detail =
+      err.response?.data?.error?.message ||
+      err.response?.data?.message ||
+      err.message;
+    logger.error(`Vision API error (${model}): ${detail}`);
+    throw Object.assign(new Error(`Vision error: ${detail}`), {
+      status: err.response?.status || 500,
+    });
+  }
 
   const content = response.data.choices?.[0]?.message?.content;
   if (!content) throw new Error('Empty response from AI vision');
 
   const match = content.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('No JSON array found in vision response');
+  if (!match) throw new Error('AI did not return a product list. Try a clearer photo.');
 
   const products = JSON.parse(match[0]);
-  if (!Array.isArray(products)) throw new Error('Invalid products format');
+  if (!Array.isArray(products)) throw new Error('Invalid products format from AI');
 
   return products;
 };

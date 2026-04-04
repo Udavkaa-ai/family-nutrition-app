@@ -286,6 +286,7 @@ class _ItemFormState extends State<_ItemForm> {
   final _speech = stt.SpeechToText();
   bool _isListening = false;
   bool _speechAvailable = false;
+  String _localeId = 'ru-RU'; // updated dynamically in _initSpeech
 
   static const _unitSuggestions = ['г', 'кг', 'мл', 'л', 'шт', 'уп', 'ст.л', 'ч.л'];
 
@@ -313,6 +314,13 @@ class _ItemFormState extends State<_ItemForm> {
         }
       },
     );
+    if (available) {
+      final systemLocales = await _speech.locales();
+      final ruLocale = systemLocales
+          .where((l) => l.localeId.toLowerCase().startsWith('ru'))
+          .firstOrNull;
+      if (ruLocale != null) _localeId = ruLocale.localeId;
+    }
     setState(() => _speechAvailable = available);
   }
 
@@ -329,7 +337,7 @@ class _ItemFormState extends State<_ItemForm> {
             if (result.finalResult) _isListening = false;
           });
         },
-        localeId: 'ru_RU',
+        localeId: _localeId,
         listenFor: const Duration(seconds: 15),
         pauseFor: const Duration(seconds: 2),
       );
