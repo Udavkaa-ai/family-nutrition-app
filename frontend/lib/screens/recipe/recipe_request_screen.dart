@@ -20,7 +20,7 @@ class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
   final _speech = stt.SpeechToText();
   bool _isListening = false;
   bool _speechAvailable = false;
-  String _localeId = 'ru-RU'; // updated dynamically in _initSpeech
+  static const _localeId = 'ru-RU';
 
   static const _mealTypes = [
     ('breakfast', 'Завтрак', Icons.free_breakfast),
@@ -46,15 +46,6 @@ class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
         }
       },
     );
-    if (available) {
-      // Find the exact Russian locale ID as known to the device/Google STT.
-      // Avoids ru_RU vs ru-RU mismatch that causes silent fallback to English.
-      final systemLocales = await _speech.locales();
-      final ruLocale = systemLocales
-          .where((l) => l.localeId.toLowerCase().startsWith('ru'))
-          .firstOrNull;
-      if (ruLocale != null) _localeId = ruLocale.localeId;
-    }
     setState(() => _speechAvailable = available);
   }
 
