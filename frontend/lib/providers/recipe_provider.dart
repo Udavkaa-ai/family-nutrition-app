@@ -23,6 +23,7 @@ class RecipeProvider extends ChangeNotifier {
     required String familyId,
     required int cookTime,
     required String mealType,
+    String wishText = '',
   }) async {
     _status = RecipeStatus.loading;
     _errorMessage = null;
@@ -33,6 +34,7 @@ class RecipeProvider extends ChangeNotifier {
         familyId: familyId,
         cookTime: cookTime,
         mealType: mealType,
+        wishText: wishText,
       );
       _status = RecipeStatus.success;
     } catch (e) {

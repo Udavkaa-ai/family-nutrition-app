@@ -6,7 +6,7 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 /**
  * Build a prompt for recipe generation based on family members and preferences.
  */
-const buildPrompt = (familyMembers, cookTime, mealType, pantryItems = []) => {
+const buildPrompt = (familyMembers, cookTime, mealType, pantryItems = [], wishText = '') => {
   const membersText = familyMembers.length > 0
     ? familyMembers.map((m) => {
         const parts = [];
@@ -20,15 +20,19 @@ const buildPrompt = (familyMembers, cookTime, mealType, pantryItems = []) => {
     ? `\nПродукты в кладовой: ${pantryItems.map((i) => `${i.name} (${i.quantity} ${i.unit})`).join(', ')}`
     : '';
 
+  const wishSection = wishText?.trim()
+    ? `\nОсобое пожелание семьи: ${wishText.trim()}`
+    : '';
+
   return `You are a family nutrition advisor. Generate recipe recommendations.
 
 Family members:
 ${membersText}
-${pantryText}
+${pantryText}${wishSection}
 Cooking time: up to ${cookTime} minutes
 Meal type: ${mealType}
 
-Provide EXACTLY 4 recipes in valid JSON format. Prioritize using available pantry items.
+Provide EXACTLY 4 recipes in valid JSON format. Prioritize using available pantry items and respecting the special request if provided.
 
 [
   {
@@ -64,9 +68,9 @@ const parseRecipes = (text) => {
 /**
  * Call OpenRouter API and return parsed recipes array.
  */
-const generateRecipes = async ({ familyMembers, cookTime, mealType, pantryItems }) => {
+const generateRecipes = async ({ familyMembers, cookTime, mealType, pantryItems, wishText = '' }) => {
   const model = process.env.OPENROUTER_MODEL || 'google/gemini-3.1-flash-lite-preview';
-  const prompt = buildPrompt(familyMembers, cookTime, mealType, pantryItems);
+  const prompt = buildPrompt(familyMembers, cookTime, mealType, pantryItems, wishText);
 
   logger.debug(`Calling OpenRouter model: ${model}`);
 
@@ -95,4 +99,58 @@ const generateRecipes = async ({ familyMembers, cookTime, mealType, pantryItems 
   return parseRecipes(content);
 };
 
-module.exports = { generateRecipes };
+/**
+ * Analyze a pantry photo using Gemini Vision and return a list of detected products.
+ * @param {string} base64Image - Base64-encoded JPEG image
+ * @returns {Promise<Array<{name: string, quantity: number, unit: string}>>}
+ */
+const analyzePantryPhoto = async (base64Image) => {
+  const model = process.env.OPENROUTER_VISION_MODEL || 'google/gemini-2.0-flash-exp';
+
+  logger.debug(`Analyzing pantry photo with model: ${model}`);
+
+  const response = await axios.post(
+    OPENROUTER_URL,
+    {
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+            },
+            {
+              type: 'text',
+              text: 'Определи все продукты питания на этом фото (кладовая, холодильник, полка с едой). Верни ТОЛЬКО валидный JSON массив объектов с полями: name (название по-русски), quantity (число), unit (единица: г, кг, мл, л, шт, уп, пач). Пример: [{"name":"Молоко","quantity":1,"unit":"л"},{"name":"Яйца","quantity":6,"unit":"шт"},{"name":"Масло сливочное","quantity":200,"unit":"г"}]. Только JSON массив, без пояснений.',
+            },
+          ],
+        },
+      ],
+      max_tokens: 1000,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5000',
+        'X-Title': 'Family Nutrition Advisor',
+      },
+      timeout: 30000,
+    }
+  );
+
+  const content = response.data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Empty response from AI vision');
+
+  const match = content.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('No JSON array found in vision response');
+
+  const products = JSON.parse(match[0]);
+  if (!Array.isArray(products)) throw new Error('Invalid products format');
+
+  return products;
+};
+
+module.exports = { generateRecipes, analyzePantryPhoto };

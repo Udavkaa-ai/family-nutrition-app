@@ -11,7 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: claude/init-backend-setup-ENr6X
+          ref: claude/add-voice-photo-recipes-YQYSE
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -42,6 +42,25 @@ jobs:
           sed -i 's/applicationId .*/applicationId "com.example.family_nutrition_app"/' build.gradle
           echo "=== build.gradle check ==="
           grep -E "minSdk|applicationId" build.gradle
+
+      - name: Add Android permissions (mic + camera)
+        run: |
+          python3 -c "
+          import re
+          path = 'frontend/android/app/src/main/AndroidManifest.xml'
+          with open(path, 'r') as f:
+              content = f.read()
+          permissions = '''    <uses-permission android:name=\"android.permission.RECORD_AUDIO\"/>
+              <uses-permission android:name=\"android.permission.CAMERA\"/>
+              <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\" android:maxSdkVersion=\"32\"/>
+              <uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\"/>
+              <uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\" android:maxSdkVersion=\"28\"/>
+          '''
+          content = content.replace('</manifest>', permissions + '</manifest>')
+          with open(path, 'w') as f:
+              f.write(content)
+          print('Permissions added successfully')
+          "
 
       - name: Get dependencies
         working-directory: frontend

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../providers/family_provider.dart';
 import '../../providers/recipe_provider.dart';
 import 'recipe_list_screen.dart';
@@ -14,6 +15,11 @@ class RecipeRequestScreen extends StatefulWidget {
 class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
   int _cookTime = 30;
   String _mealType = 'dinner';
+  final _wishController = TextEditingController();
+
+  final _speech = stt.SpeechToText();
+  bool _isListening = false;
+  bool _speechAvailable = false;
 
   static const _mealTypes = [
     ('breakfast', 'Завтрак', Icons.free_breakfast),
@@ -24,14 +30,65 @@ class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
 
   static const _cookTimes = [15, 30, 45, 60, 90];
 
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    final available = await _speech.initialize(
+      onError: (_) => setState(() => _isListening = false),
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _isListening = false);
+        }
+      },
+    );
+    setState(() => _speechAvailable = available);
+  }
+
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+    } else {
+      setState(() => _isListening = true);
+      await _speech.listen(
+        onResult: (result) {
+          setState(() {
+            _wishController.text = result.recognizedWords;
+            if (result.finalResult) _isListening = false;
+          });
+        },
+        localeId: 'ru_RU',
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _wishController.dispose();
+    _speech.cancel();
+    super.dispose();
+  }
+
   Future<void> _generate() async {
     final familyId = context.read<FamilyProvider>().familyId;
     if (familyId == null) return;
+
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+    }
 
     await context.read<RecipeProvider>().generateRecipes(
           familyId: familyId,
           cookTime: _cookTime,
           mealType: _mealType,
+          wishText: _wishController.text.trim(),
         );
 
     if (mounted) {
@@ -156,7 +213,47 @@ class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
                             : FontWeight.normal)))
                 .toList(),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 24),
+
+          // Wish field with voice input
+          _SectionTitle('Пожелание к рецептам'),
+          TextField(
+            controller: _wishController,
+            maxLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: 'Например: что-нибудь итальянское, без лука...',
+              border: const OutlineInputBorder(),
+              suffixIcon: _speechAvailable
+                  ? IconButton(
+                      tooltip: _isListening ? 'Остановить' : 'Говорить',
+                      icon: Icon(
+                        _isListening ? Icons.mic : Icons.mic_none,
+                        color: _isListening ? Colors.red : Colors.green,
+                      ),
+                      onPressed: _toggleListening,
+                    )
+                  : null,
+            ),
+          ),
+          if (_isListening)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.red),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('Слушаю...',
+                      style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                ],
+              ),
+            ),
+          const SizedBox(height: 32),
 
           // Generate button
           ElevatedButton.icon(

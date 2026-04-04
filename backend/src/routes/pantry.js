@@ -43,6 +43,22 @@ const assertFamilyMember = async (uid, familyId) => {
   }
 };
 
+// ── POST /api/pantry/analyze-photo — Gemini Vision: detect products in photo ──
+router.post('/analyze-photo', authenticate, async (req, res, next) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) return res.status(400).json({ error: 'imageBase64 is required' });
+
+    const { analyzePantryPhoto } = require('../services/openrouter');
+    const products = await analyzePantryPhoto(imageBase64);
+
+    logger.info(`Pantry photo analyzed: ${products.length} products detected`);
+    res.json({ products });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── GET /api/pantry/:familyId ─────────────────────────────────────────────────
 router.get('/:familyId', authenticate, async (req, res, next) => {
   try {

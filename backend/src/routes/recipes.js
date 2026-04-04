@@ -30,7 +30,7 @@ const assertFamilyMember = async (uid, familyId) => {
 // ── POST /api/recipes/generate — generate via AI ──────────────────────────────
 router.post('/generate', authenticate, async (req, res, next) => {
   try {
-    const { familyId, cookTime = 30, mealType = 'dinner' } = req.body;
+    const { familyId, cookTime = 30, mealType = 'dinner', wishText = '' } = req.body;
     if (!familyId) return res.status(400).json({ error: 'familyId is required' });
 
     await assertFamilyMember(req.uid, familyId);
@@ -53,7 +53,7 @@ router.post('/generate', authenticate, async (req, res, next) => {
       : Object.values(pantrySnap.docs[0].data()?.items ?? {});
 
     // Call OpenRouter
-    const recipes = await generateRecipes({ familyMembers, cookTime, mealType, pantryItems });
+    const recipes = await generateRecipes({ familyMembers, cookTime, mealType, pantryItems, wishText });
 
     // Save generated recipes to Firestore
     const batch = db.batch();

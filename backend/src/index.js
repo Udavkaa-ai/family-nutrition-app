@@ -14,6 +14,7 @@ const familyRoutes = require('./routes/families');
 const pantryRoutes = require('./routes/pantry');
 const recipeRoutes = require('./routes/recipes');
 const shoppingListRoutes = require('./routes/shopping-lists');
+const spoonacularRoutes = require('./routes/spoonacular');
 const { notFound, errorHandler } = require('./middleware/error-handler');
 const logger = require('./utils/logger');
 
@@ -23,7 +24,7 @@ const app = express();
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
 app.use(morgan('combined'));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // ── System endpoints ──────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
@@ -47,6 +48,7 @@ app.use('/api/families', familyRoutes);
 app.use('/api/pantry', pantryRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/shopping-lists', shoppingListRoutes);
+app.use('/api/spoonacular', spoonacularRoutes);
 
 // ── Error handling (must be last) ─────────────────────────────────────────────
 app.use(notFound);

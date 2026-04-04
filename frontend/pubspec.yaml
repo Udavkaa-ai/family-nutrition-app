@@ -24,6 +24,12 @@ dependencies:
   # HTTP
   http: ^1.2.1
 
+  # Voice input
+  speech_to_text: ^7.0.0
+
+  # Camera / image picking
+  image_picker: ^1.1.2
+
   # UI
   cupertino_icons: ^1.0.6
 

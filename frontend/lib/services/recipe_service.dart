@@ -19,6 +19,7 @@ class RecipeService {
     required String familyId,
     required int cookTime,
     required String mealType,
+    String wishText = '',
   }) async {
     final response = await http.post(
       Uri.parse('$_base/api/recipes/generate'),
@@ -27,6 +28,7 @@ class RecipeService {
         'familyId': familyId,
         'cookTime': cookTime,
         'mealType': mealType,
+        'wishText': wishText,
       }),
     );
 
