@@ -16,11 +16,12 @@ class SpoonacularService {
       };
 
   /// Search Spoonacular recipes by query string.
+  /// Defaults to 5 results to stay within the free-tier budget (6 points/call).
   Future<List<SpoonacularRecipe>> searchRecipes(String query,
-      {int number = 10}) async {
+      {int number = 5}) async {
     final uri = Uri.parse('$_base/api/spoonacular/search').replace(
       queryParameters: {
-        'query': query.isEmpty ? 'healthy' : query,
+        'query': query.isEmpty ? 'healthy dinner' : query,
         'number': number.toString(),
       },
     );

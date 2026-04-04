@@ -21,7 +21,7 @@ class _SpoonacularScreenState extends State<SpoonacularScreen> {
   @override
   void initState() {
     super.initState();
-    _search('popular dinner');
+    _search('healthy family dinner');
   }
 
   @override

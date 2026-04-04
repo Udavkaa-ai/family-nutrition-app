@@ -105,7 +105,8 @@ const generateRecipes = async ({ familyMembers, cookTime, mealType, pantryItems,
  * @returns {Promise<Array<{name: string, quantity: number, unit: string}>>}
  */
 const analyzePantryPhoto = async (base64Image) => {
-  const model = process.env.OPENROUTER_VISION_MODEL || 'google/gemini-2.0-flash-exp';
+  // Use the same model as text generation — gemini-3.1-flash-lite-preview supports vision
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-3.1-flash-lite-preview';
 
   logger.debug(`Analyzing pantry photo with model: ${model}`);
 
