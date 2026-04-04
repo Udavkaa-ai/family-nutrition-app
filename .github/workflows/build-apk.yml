@@ -75,20 +75,26 @@ jobs:
 
       - name: Set app display name
         run: |
-          STRINGS="frontend/android/app/src/main/res/values/strings.xml"
-          # Use python for reliable Unicode (Cyrillic) replacement
           python3 -c "
-          path = '$STRINGS'
-          with open(path, 'r') as f:
-              c = f.read()
-          import re
-          c = re.sub(r'<string name=\"app_name\">.*?</string>',
-                     '<string name=\"app_name\">Питание семьи</string>', c)
-          with open(path, 'w') as f:
-              f.write(c)
-          print('App name set')
+          import os, re
+          d = 'frontend/android/app/src/main/res/values'
+          p = os.path.join(d, 'strings.xml')
+          os.makedirs(d, exist_ok=True)
+          # Read existing file or start with a blank template
+          if os.path.exists(p):
+              content = open(p, encoding='utf-8').read()
+          else:
+              content = '<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n</resources>\n'
+          # Replace existing app_name or inject it
+          new_entry = '<string name=\"app_name\">Питание семьи</string>'
+          if 'app_name' in content:
+              content = re.sub(r'<string name=\"app_name\">.*?</string>', new_entry, content)
+          else:
+              content = content.replace('</resources>', f'    {new_entry}\n</resources>')
+          with open(p, 'w', encoding='utf-8') as f:
+              f.write(content)
+          print('strings.xml:', open(p, encoding='utf-8').read())
           "
-          grep app_name "$STRINGS"
 
       - name: Generate app icon
         run: |
