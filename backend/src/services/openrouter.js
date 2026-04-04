@@ -107,7 +107,7 @@ const generateRecipes = async ({ familyMembers, cookTime, mealType, pantryItems,
 const analyzePantryPhoto = async (base64Image) => {
   // gemini-flash-1.5 is a well-tested vision model on OpenRouter.
   // Override with OPENROUTER_VISION_MODEL env var if needed.
-  const model = process.env.OPENROUTER_VISION_MODEL || 'google/gemini-flash-1.5';
+  const model = process.env.OPENROUTER_VISION_MODEL || 'google/gemma-4-26b-a4b-it';
 
   logger.debug(`Analyzing pantry photo with model: ${model}`);
 
