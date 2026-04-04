@@ -20,16 +20,20 @@ class RecipeService {
     required int cookTime,
     required String mealType,
     String wishText = '',
+    List<String> selectedMemberIds = const [],
   }) async {
+    final body = <String, dynamic>{
+      'familyId': familyId,
+      'cookTime': cookTime,
+      'mealType': mealType,
+      'wishText': wishText,
+    };
+    if (selectedMemberIds.isNotEmpty) body['selectedMemberIds'] = selectedMemberIds;
+
     final response = await http.post(
       Uri.parse('$_base/api/recipes/generate'),
       headers: await _headers(),
-      body: jsonEncode({
-        'familyId': familyId,
-        'cookTime': cookTime,
-        'mealType': mealType,
-        'wishText': wishText,
-      }),
+      body: jsonEncode(body),
     );
 
     if (response.statusCode != 200) {

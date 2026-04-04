@@ -30,7 +30,7 @@ const assertFamilyMember = async (uid, familyId) => {
 // ── POST /api/recipes/generate — generate via AI ──────────────────────────────
 router.post('/generate', authenticate, async (req, res, next) => {
   try {
-    const { familyId, cookTime = 30, mealType = 'dinner', wishText = '' } = req.body;
+    const { familyId, cookTime = 30, mealType = 'dinner', wishText = '', selectedMemberIds } = req.body;
     if (!familyId) return res.status(400).json({ error: 'familyId is required' });
 
     await assertFamilyMember(req.uid, familyId);
@@ -40,7 +40,12 @@ router.post('/generate', authenticate, async (req, res, next) => {
       .collection('family_members')
       .where('familyId', '==', familyId)
       .get();
-    const familyMembers = membersSnap.docs.map((d) => d.data());
+    let familyMembers = membersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    // Filter to selected members if the caller specified a subset
+    if (Array.isArray(selectedMemberIds) && selectedMemberIds.length > 0) {
+      familyMembers = familyMembers.filter((m) => selectedMemberIds.includes(m.id));
+    }
 
     // Fetch pantry items
     const pantrySnap = await db

@@ -17,6 +17,10 @@ class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
   String _mealType = 'dinner';
   final _wishController = TextEditingController();
 
+  // Members selection — empty means "not yet initialized"; after init == all selected
+  Set<String> _selectedMemberIds = {};
+  bool _membersInitialized = false;
+
   final _speech = stt.SpeechToText();
   bool _isListening = false;
   bool _speechAvailable = false;
@@ -35,6 +39,22 @@ class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
   void initState() {
     super.initState();
     _initSpeech();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initialize all members as selected on first load
+    if (!_membersInitialized) {
+      final members = context.read<FamilyProvider>().members;
+      if (members.isNotEmpty) {
+        _membersInitialized = true;
+        _selectedMemberIds = members
+            .where((m) => m.id != null)
+            .map((m) => m.id!)
+            .toSet();
+      }
+    }
   }
 
   Future<void> _initSpeech() async {
@@ -90,6 +110,7 @@ class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
           cookTime: _cookTime,
           mealType: _mealType,
           wishText: _wishController.text.trim(),
+          selectedMemberIds: _selectedMemberIds.toList(),
         );
 
     if (mounted) {
@@ -123,28 +144,52 @@ class _RecipeRequestScreenState extends State<RecipeRequestScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Family members summary
+          // Family members selection
           if (members.isNotEmpty) ...[
-            _SectionTitle('Учитываем предпочтения'),
+            _SectionTitle('Готовим для'),
             Card(
               child: Column(
-                children: members.map((m) => ListTile(
-                  dense: true,
-                  leading: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.green.shade100,
-                    child: Text(m.name[0],
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  title: Text(m.name),
-                  subtitle: m.dietaryPreferences.isEmpty
-                      ? null
-                      : Text(m.dietaryPreferences.join(', '),
-                          style: const TextStyle(fontSize: 12)),
-                )).toList(),
+                children: members.map((m) {
+                  final selected = _selectedMemberIds.contains(m.id);
+                  return CheckboxListTile(
+                    dense: true,
+                    activeColor: Colors.green,
+                    value: selected,
+                    onChanged: m.id == null
+                        ? null
+                        : (v) {
+                            setState(() {
+                              if (v == true) {
+                                _selectedMemberIds.add(m.id!);
+                              } else if (_selectedMemberIds.length > 1) {
+                                // Keep at least one member selected
+                                _selectedMemberIds.remove(m.id!);
+                              }
+                            });
+                          },
+                    secondary: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: selected
+                          ? Colors.green.shade100
+                          : Colors.grey.shade200,
+                      child: Text(
+                        m.name[0],
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: selected ? Colors.green : Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(m.name,
+                        style: TextStyle(
+                            color: selected ? null : Colors.grey)),
+                    subtitle: m.dietaryPreferences.isEmpty
+                        ? null
+                        : Text(m.dietaryPreferences.join(', '),
+                            style: const TextStyle(fontSize: 12)),
+                  );
+                }).toList(),
               ),
             ),
             const SizedBox(height: 24),

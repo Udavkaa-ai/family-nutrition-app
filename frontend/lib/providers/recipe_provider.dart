@@ -24,6 +24,7 @@ class RecipeProvider extends ChangeNotifier {
     required int cookTime,
     required String mealType,
     String wishText = '',
+    List<String> selectedMemberIds = const [],
   }) async {
     _status = RecipeStatus.loading;
     _errorMessage = null;
@@ -35,6 +36,7 @@ class RecipeProvider extends ChangeNotifier {
         cookTime: cookTime,
         mealType: mealType,
         wishText: wishText,
+        selectedMemberIds: selectedMemberIds,
       );
       _status = RecipeStatus.success;
     } catch (e) {

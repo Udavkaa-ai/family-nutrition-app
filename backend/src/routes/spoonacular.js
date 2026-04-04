@@ -3,6 +3,38 @@ const axios = require('axios');
 const { auth } = require('../config/firebase');
 const logger = require('../utils/logger');
 
+// Translate Cyrillic recipe name to English for Spoonacular search
+const hasCyrillic = (str) => /[\u0400-\u04FF]/.test(str);
+
+const translateToEnglish = async (text) => {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) return text;
+  try {
+    const r = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        model: process.env.OPENROUTER_MODEL || 'google/gemini-3.1-flash-lite-preview',
+        messages: [{
+          role: 'user',
+          content: `Translate to English for recipe search. Reply with just the translation, nothing else: ${text}`,
+        }],
+        max_tokens: 60,
+        temperature: 0,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 6000,
+      }
+    );
+    return r.data.choices?.[0]?.message?.content?.trim() || text;
+  } catch {
+    return text; // fall back to original on any error
+  }
+};
+
 const router = Router();
 
 // ── In-memory cache (1 hour TTL) to avoid burning free-tier points ─────────────
@@ -48,7 +80,14 @@ router.get('/search', authenticate, async (req, res, next) => {
   try {
     const rawQuery = (req.query.query || '').trim();
     const number = Math.min(Math.max(parseInt(req.query.number, 10) || 8, 1), 10);
-    const query = rawQuery || 'healthy dinner';
+
+    // Translate Cyrillic queries to English for Spoonacular (English-only database)
+    let query = rawQuery || 'healthy dinner';
+    if (hasCyrillic(query)) {
+      const translated = await translateToEnglish(query);
+      logger.debug(`Spoonacular: translated "${query}" → "${translated}"`);
+      query = translated || query;
+    }
 
     const apiKey = process.env.SPOONACULAR_API_KEY;
     if (!apiKey) {
