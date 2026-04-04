@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
@@ -95,9 +96,7 @@ class _FamilyTab extends StatelessWidget {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.person_add),
         label: const Text('Добавить'),
-        onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => const _AddMemberPlaceholder(),
-        )),
+        onPressed: () => context.push('/add-member'),
       ),
     );
   }
@@ -127,19 +126,5 @@ class _FamilyTab extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-// Placeholder that routes to MemberPreferencesScreen
-class _AddMemberPlaceholder extends StatelessWidget {
-  const _AddMemberPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    // Push immediately and pop self to avoid extra back-stack entry
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.of(context).pushReplacementNamed('/add-member');
-    });
-    return const SizedBox.shrink();
   }
 }
