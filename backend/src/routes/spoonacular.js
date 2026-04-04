@@ -47,7 +47,7 @@ const spoonacularHeaders = (apiKey) => ({
 router.get('/search', authenticate, async (req, res, next) => {
   try {
     const rawQuery = (req.query.query || '').trim();
-    const number = Math.min(Math.max(parseInt(req.query.number) || 8, 1), 10);
+    const number = Math.min(Math.max(parseInt(req.query.number, 10) || 8, 1), 10);
     const query = rawQuery || 'healthy dinner';
 
     const apiKey = process.env.SPOONACULAR_API_KEY;
@@ -103,7 +103,7 @@ router.get('/search', authenticate, async (req, res, next) => {
 router.get('/recipe/:id', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
-    if (!id || isNaN(parseInt(id))) {
+    if (!id || isNaN(parseInt(id, 10))) {
       return res.status(400).json({ error: 'Invalid recipe id' });
     }
 

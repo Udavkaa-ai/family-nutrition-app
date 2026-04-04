@@ -162,14 +162,16 @@ class _PantryScreenState extends State<PantryScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, size: 20),
-                            onPressed: () =>
-                                _showItemDialog(context, familyId!, item: item),
+                            onPressed: familyId == null
+                                ? null
+                                : () => _showItemDialog(context, familyId, item: item),
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline,
                                 size: 20, color: Colors.red),
-                            onPressed: () =>
-                                _confirmDelete(context, familyId!, item),
+                            onPressed: familyId == null
+                                ? null
+                                : () => _confirmDelete(context, familyId, item),
                           ),
                         ],
                       ),

@@ -15,7 +15,7 @@ class PantryItem {
     return PantryItem(
       id: id,
       name: data['name'] as String,
-      quantity: (data['quantity'] as num).toDouble(),
+      quantity: (data['quantity'] as num?)?.toDouble() ?? 1.0,
       unit: data['unit'] as String? ?? '',
     );
   }
