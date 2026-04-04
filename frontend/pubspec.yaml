@@ -25,7 +25,7 @@ dependencies:
   http: ^1.2.1
 
   # Voice input
-  speech_to_text: ^7.0.0
+  speech_to_text: ^6.6.0
 
   # Camera / image picking
   image_picker: ^1.1.2

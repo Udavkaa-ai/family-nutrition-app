@@ -29,19 +29,32 @@ jobs:
         working-directory: frontend
         run: flutter create . --platforms android
 
+      - name: Configure local.properties (Flutter SDK + Android SDK paths)
+        working-directory: frontend/android
+        run: |
+          # Overwrite to guarantee correct paths — flutter create sometimes
+          # writes a wrong sdk.dir when ANDROID_SDK_ROOT is not exported.
+          echo "sdk.dir=${ANDROID_SDK_ROOT:-$ANDROID_HOME}" > local.properties
+          echo "flutter.sdk=$FLUTTER_ROOT" >> local.properties
+          echo "=== local.properties ==="
+          cat local.properties
+
       - name: Copy google-services.json
         run: cp frontend/google-services.json frontend/android/app/google-services.json
 
-      - name: Set minSdkVersion and applicationId
+      - name: Set minSdkVersion, compileSdkVersion and applicationId
         working-directory: frontend/android/app
         run: |
           sed -i 's/minSdkVersion flutter\.minSdkVersion/minSdkVersion 23/' build.gradle
           sed -i 's/minSdk = flutter\.minSdkVersion/minSdk = 23/' build.gradle
           sed -i 's/minSdk = 21/minSdk = 23/' build.gradle
           sed -i 's/minSdkVersion 21/minSdkVersion 23/' build.gradle
+          # Ensure compileSdkVersion is set explicitly (required by some plugins)
+          sed -i 's/compileSdk = flutter\.compileSdkVersion/compileSdk = 34/' build.gradle
+          sed -i 's/compileSdkVersion flutter\.compileSdkVersion/compileSdkVersion 34/' build.gradle
           sed -i 's/applicationId .*/applicationId "com.example.family_nutrition_app"/' build.gradle
           echo "=== build.gradle check ==="
-          grep -E "minSdk|applicationId" build.gradle
+          grep -E "minSdk|compileSdk|applicationId" build.gradle
 
       - name: Add Android permissions (mic + camera)
         run: |
