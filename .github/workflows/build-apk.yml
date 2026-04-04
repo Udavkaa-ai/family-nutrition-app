@@ -77,23 +77,34 @@ jobs:
         run: |
           python3 -c "
           import os, re
+
+          APP_NAME = 'Питание семьи'
+
+          # 1) Patch strings.xml (primary)
           d = 'frontend/android/app/src/main/res/values'
           p = os.path.join(d, 'strings.xml')
           os.makedirs(d, exist_ok=True)
-          # Read existing file or start with a blank template
           if os.path.exists(p):
               content = open(p, encoding='utf-8').read()
           else:
               content = '<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n</resources>\n'
-          # Replace existing app_name or inject it
-          new_entry = '<string name=\"app_name\">Питание семьи</string>'
+          new_entry = f'<string name=\"app_name\">{APP_NAME}</string>'
           if 'app_name' in content:
               content = re.sub(r'<string name=\"app_name\">.*?</string>', new_entry, content)
           else:
               content = content.replace('</resources>', f'    {new_entry}\n</resources>')
           with open(p, 'w', encoding='utf-8') as f:
               f.write(content)
-          print('strings.xml:', open(p, encoding='utf-8').read())
+          print('strings.xml OK:', open(p, encoding='utf-8').read())
+
+          # 2) Patch AndroidManifest.xml android:label directly (backup)
+          mp = 'frontend/android/app/src/main/AndroidManifest.xml'
+          mc = open(mp, encoding='utf-8').read()
+          # Replace @string/app_name or any existing label with hardcoded name
+          mc = re.sub(r'android:label=\"[^\"]*\"', f'android:label=\"{APP_NAME}\"', mc)
+          with open(mp, 'w', encoding='utf-8') as f:
+              f.write(mc)
+          print('AndroidManifest label set to:', APP_NAME)
           "
 
       - name: Generate app icon
