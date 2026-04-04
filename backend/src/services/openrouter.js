@@ -65,7 +65,7 @@ const parseRecipes = (text) => {
  * Call OpenRouter API and return parsed recipes array.
  */
 const generateRecipes = async ({ familyMembers, cookTime, mealType, pantryItems }) => {
-  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-thinking-exp:free';
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-3.1-flash-lite-preview';
   const prompt = buildPrompt(familyMembers, cookTime, mealType, pantryItems);
 
   logger.debug(`Calling OpenRouter model: ${model}`);
