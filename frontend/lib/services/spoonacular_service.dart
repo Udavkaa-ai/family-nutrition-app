@@ -15,10 +15,10 @@ class SpoonacularService {
         'Authorization': 'Bearer ${await _token()}',
       };
 
-  /// Search Spoonacular recipes by query string.
-  /// Defaults to 5 results to stay within the free-tier budget (6 points/call).
+  /// Search recipes — costs 1 point per unique query (cached on server for 1 h).
+  /// Returns only id + title; no photo is loaded until the user selects a recipe.
   Future<List<SpoonacularRecipe>> searchRecipes(String query,
-      {int number = 5}) async {
+      {int number = 8}) async {
     final uri = Uri.parse('$_base/api/spoonacular/search').replace(
       queryParameters: {
         'query': query.isEmpty ? 'healthy dinner' : query,
@@ -38,5 +38,20 @@ class SpoonacularService {
     return list
         .map((e) => SpoonacularRecipe.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Fetch full recipe details (photo, time, summary) — costs 1 point per tap.
+  /// Subsequent taps on the same recipe are served from server cache (free).
+  Future<SpoonacularRecipeDetail> getRecipeDetail(int id) async {
+    final uri = Uri.parse('$_base/api/spoonacular/recipe/$id');
+    final response = await http.get(uri, headers: await _headers());
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>? ?? {};
+      throw Exception(body['error'] ?? 'Ошибка загрузки рецепта');
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return SpoonacularRecipeDetail.fromJson(data);
   }
 }

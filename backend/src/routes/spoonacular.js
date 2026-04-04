@@ -5,10 +5,9 @@ const logger = require('../utils/logger');
 
 const router = Router();
 
-// ── In-memory cache to avoid burning free-tier points on repeated queries ─────
-// Key: "query:number" → { recipes, total, cachedAt }
+// ── In-memory cache (1 hour TTL) to avoid burning free-tier points ─────────────
 const cache = new Map();
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL_MS = 60 * 60 * 1000;
 
 const getCached = (key) => {
   const entry = cache.get(key);
@@ -17,8 +16,10 @@ const getCached = (key) => {
     cache.delete(key);
     return null;
   }
-  return entry;
+  return entry.data;
 };
+
+const setCached = (key, data) => cache.set(key, { data, cachedAt: Date.now() });
 
 const authenticate = async (req, res, next) => {
   const header = req.headers.authorization;
@@ -34,15 +35,19 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// ── GET /api/spoonacular/search?query=pasta&number=5 ──────────────────────────
-// Free tier: 50 points/day. complexSearch + addRecipeInformation costs 1+N points
-// (1 for the search + 1 per recipe). Defaulting to 5 results = 6 points/search
-// → ~8 unique searches/day, cached results are free.
+const spoonacularHeaders = (apiKey) => ({
+  params: { apiKey },
+  timeout: 10000,
+});
+
+// ── GET /api/spoonacular/search?query=pasta ───────────────────────────────────
+// Cost: 1 point per search (no addRecipeInformation).
+// Returns only id + title — no photos, no extra fields.
+// Photos are fetched separately when user selects a recipe.
 router.get('/search', authenticate, async (req, res, next) => {
   try {
     const rawQuery = (req.query.query || '').trim();
-    // Cap at 5 to stay within free-tier budget (6 points/call)
-    const number = Math.min(Math.max(parseInt(req.query.number) || 5, 1), 5);
+    const number = Math.min(Math.max(parseInt(req.query.number) || 8, 1), 10);
     const query = rawQuery || 'healthy dinner';
 
     const apiKey = process.env.SPOONACULAR_API_KEY;
@@ -50,47 +55,100 @@ router.get('/search', authenticate, async (req, res, next) => {
       return res.status(503).json({ error: 'Spoonacular API not configured' });
     }
 
-    // Return cached result if available
-    const cacheKey = `${query.toLowerCase()}:${number}`;
+    const cacheKey = `search:${query.toLowerCase()}:${number}`;
     const cached = getCached(cacheKey);
     if (cached) {
-      logger.debug(`Spoonacular cache hit: "${query}"`);
-      return res.json({ recipes: cached.recipes, total: cached.total, cached: true });
+      logger.debug(`Spoonacular cache hit (search): "${query}"`);
+      return res.json({ ...cached, cached: true });
     }
 
-    const response = await axios.get('https://api.spoonacular.com/recipes/complexSearch', {
-      params: {
-        query,
-        number,
-        apiKey,
-        addRecipeInformation: true,
-        instructionsRequired: false, // saves a tiny bit of processing
-        addRecipeNutrition: false,
-      },
-      timeout: 10000,
-    });
+    const response = await axios.get(
+      'https://api.spoonacular.com/recipes/complexSearch',
+      {
+        params: {
+          query,
+          number,
+          apiKey,
+          // No addRecipeInformation → costs only 1 point for the whole search
+        },
+        timeout: 10000,
+      }
+    );
 
     const recipes = (response.data.results || []).map((r) => ({
+      id: r.id,
+      title: r.title,
+      // image URL is included in basic search for free — but we won't show it
+      // in the list; it will be used only when user opens the detail sheet.
+      image: r.image || '',
+    }));
+
+    const payload = { recipes, total: response.data.totalResults || 0 };
+    setCached(cacheKey, payload);
+
+    logger.info(`Spoonacular search: "${query}" → ${recipes.length} results (1 point)`);
+    res.json({ ...payload, cached: false });
+  } catch (err) {
+    logger.error('Spoonacular search error:', err.message);
+    if (err.response?.status === 402) {
+      return res.status(402).json({ error: 'Дневной лимит Spoonacular исчерпан. Попробуйте завтра.' });
+    }
+    next(err);
+  }
+});
+
+// ── GET /api/spoonacular/recipe/:id ──────────────────────────────────────────
+// Cost: 1 point per call (only charged when user taps a recipe).
+// Returns full details: photo, readyInMinutes, servings, summary.
+router.get('/recipe/:id', authenticate, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({ error: 'Invalid recipe id' });
+    }
+
+    const apiKey = process.env.SPOONACULAR_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: 'Spoonacular API not configured' });
+    }
+
+    const cacheKey = `recipe:${id}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      logger.debug(`Spoonacular cache hit (recipe): ${id}`);
+      return res.json({ ...cached, cached: true });
+    }
+
+    const response = await axios.get(
+      `https://api.spoonacular.com/recipes/${id}/information`,
+      {
+        params: { apiKey, includeNutrition: false },
+        timeout: 10000,
+      }
+    );
+
+    const r = response.data;
+    const detail = {
       id: r.id,
       title: r.title,
       image: r.image || '',
       readyInMinutes: r.readyInMinutes || 0,
       servings: r.servings || 0,
-      summary: r.summary ? r.summary.replace(/<[^>]*>/g, '').slice(0, 400) : '',
+      summary: r.summary ? r.summary.replace(/<[^>]*>/g, '').slice(0, 500) : '',
       sourceUrl: r.sourceUrl || '',
-    }));
+    };
 
-    const total = response.data.totalResults || 0;
+    setCached(cacheKey, detail);
 
-    // Store in cache
-    cache.set(cacheKey, { recipes, total, cachedAt: Date.now() });
-
-    logger.info(`Spoonacular search: "${query}" → ${recipes.length} results`);
-    res.json({ recipes, total, cached: false });
+    logger.info(`Spoonacular recipe detail: ${id} "${r.title}" (1 point)`);
+    res.json({ ...detail, cached: false });
   } catch (err) {
-    logger.error('Spoonacular error:', err.message);
+    logger.error('Spoonacular detail error:', err.message);
     if (err.response?.status === 402) {
       return res.status(402).json({ error: 'Дневной лимит Spoonacular исчерпан. Попробуйте завтра.' });
+    }
+    if (err.response?.status === 404) {
+      return res.status(404).json({ error: 'Рецепт не найден' });
     }
     next(err);
   }

@@ -16,7 +16,6 @@ class _SpoonacularScreenState extends State<SpoonacularScreen> {
   List<SpoonacularRecipe> _recipes = [];
   bool _loading = false;
   String? _error;
-  bool _searched = false;
 
   @override
   void initState() {
@@ -34,7 +33,6 @@ class _SpoonacularScreenState extends State<SpoonacularScreen> {
     setState(() {
       _loading = true;
       _error = null;
-      _searched = true;
     });
 
     try {
@@ -51,6 +49,20 @@ class _SpoonacularScreenState extends State<SpoonacularScreen> {
     }
   }
 
+  void _openDetail(BuildContext context, SpoonacularRecipe recipe) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _RecipeDetailSheet(
+        recipe: recipe,
+        service: _service,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -62,7 +74,7 @@ class _SpoonacularScreenState extends State<SpoonacularScreen> {
             controller: _searchController,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              hintText: 'Поиск рецептов (на англ.): pasta, chicken...',
+              hintText: 'Поиск блюд (на англ.): pasta, chicken soup...',
               prefixIcon: const Icon(Icons.search, color: Colors.green),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               focusedBorder: OutlineInputBorder(
@@ -94,14 +106,17 @@ class _SpoonacularScreenState extends State<SpoonacularScreen> {
                       message: _error!,
                       onRetry: () => _search(_searchController.text.trim()),
                     )
-                  : _recipes.isEmpty && _searched
+                  : _recipes.isEmpty
                       ? const _EmptyResult()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                           itemCount: _recipes.length,
-                          itemBuilder: (_, i) =>
-                              _SpoonacularCard(recipe: _recipes[i]),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 4),
+                          itemBuilder: (ctx, i) => _RecipeListTile(
+                            recipe: _recipes[i],
+                            onTap: () => _openDetail(ctx, _recipes[i]),
+                          ),
                         ),
         ),
       ],
@@ -109,142 +124,187 @@ class _SpoonacularScreenState extends State<SpoonacularScreen> {
   }
 }
 
-class _SpoonacularCard extends StatelessWidget {
+// ── Text-only list tile (no photo — photos load only on tap) ──────────────────
+
+class _RecipeListTile extends StatelessWidget {
   final SpoonacularRecipe recipe;
-  const _SpoonacularCard({required this.recipe});
+  final VoidCallback onTap;
+
+  const _RecipeListTile({required this.recipe, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _showDetail(context),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Photo
-            if (recipe.image.isNotEmpty)
-              SizedBox(
-                width: 110,
-                height: 90,
-                child: Image.network(
-                  recipe.image,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.restaurant, color: Colors.grey),
-                  ),
-                ),
-              )
-            else
-              Container(
-                width: 110,
-                height: 90,
-                color: Colors.grey.shade200,
-                child: const Icon(Icons.restaurant, color: Colors.grey),
-              ),
-
-            // Info
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      recipe.title,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.timer_outlined,
-                            size: 14, color: Colors.grey),
-                        const SizedBox(width: 3),
-                        Text('${recipe.readyInMinutes} мин',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
-                        const SizedBox(width: 10),
-                        const Icon(Icons.people_outline,
-                            size: 14, color: Colors.grey),
-                        const SizedBox(width: 3),
-                        Text('${recipe.servings} порц.',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.green.shade50,
+          child: const Icon(Icons.restaurant, color: Colors.green, size: 20),
         ),
+        title: Text(
+          recipe.title,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+        onTap: onTap,
       ),
     );
   }
+}
 
-  void _showDetail(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.95,
-        minChildSize: 0.4,
-        expand: false,
-        builder: (_, scrollController) => SingleChildScrollView(
+// ── Detail bottom sheet — photo loads here (1 point per unique recipe) ─────────
+
+class _RecipeDetailSheet extends StatefulWidget {
+  final SpoonacularRecipe recipe;
+  final SpoonacularService service;
+
+  const _RecipeDetailSheet({required this.recipe, required this.service});
+
+  @override
+  State<_RecipeDetailSheet> createState() => _RecipeDetailSheetState();
+}
+
+class _RecipeDetailSheetState extends State<_RecipeDetailSheet> {
+  SpoonacularRecipeDetail? _detail;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDetail();
+  }
+
+  Future<void> _loadDetail() async {
+    try {
+      final detail = await widget.service.getRecipeDetail(widget.recipe.id);
+      if (mounted) setState(() { _detail = detail; _loading = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceFirst('Exception: ', '');
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.65,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (_, scrollController) {
+        if (_loading) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(color: Colors.green),
+            ),
+          );
+        }
+
+        if (_error != null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.orange),
+                  const SizedBox(height: 12),
+                  Text(_error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() { _loading = true; _error = null; });
+                      _loadDetail();
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    child: const Text('Повторить',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final d = _detail!;
+        return SingleChildScrollView(
           controller: scrollController,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (recipe.image.isNotEmpty)
+              // Photo — loads only when this sheet is opened
+              if (d.image.isNotEmpty)
                 Image.network(
-                  recipe.image,
-                  height: 200,
+                  d.image,
+                  height: 220,
                   fit: BoxFit.cover,
+                  loadingBuilder: (_, child, progress) => progress == null
+                      ? child
+                      : SizedBox(
+                          height: 220,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: progress.expectedTotalBytes != null
+                                  ? progress.cumulativeBytesLoaded /
+                                      progress.expectedTotalBytes!
+                                  : null,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ),
                   errorBuilder: (_, __, ___) =>
                       const SizedBox(height: 0),
                 ),
+
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(recipe.title,
+                    Text(d.title,
                         style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        const Icon(Icons.timer_outlined,
-                            size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text('${recipe.readyInMinutes} минут',
-                            style: const TextStyle(color: Colors.grey)),
-                        const SizedBox(width: 16),
-                        const Icon(Icons.people_outline,
-                            size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text('${recipe.servings} порций',
-                            style: const TextStyle(color: Colors.grey)),
+                        if (d.readyInMinutes > 0) ...[
+                          const Icon(Icons.timer_outlined,
+                              size: 16, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text('${d.readyInMinutes} мин',
+                              style: const TextStyle(color: Colors.grey)),
+                          const SizedBox(width: 16),
+                        ],
+                        if (d.servings > 0) ...[
+                          const Icon(Icons.people_outline,
+                              size: 16, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text('${d.servings} порц.',
+                              style: const TextStyle(color: Colors.grey)),
+                        ],
                       ],
                     ),
-                    if (recipe.summary.isNotEmpty) ...[
+                    if (d.summary.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Text('Описание',
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      Text(recipe.summary,
+                      Text(d.summary,
                           style: const TextStyle(
-                              fontSize: 14, color: Colors.black87)),
+                              fontSize: 14,
+                              color: Colors.black87,
+                              height: 1.5)),
                     ],
                     const SizedBox(height: 24),
                   ],
@@ -252,11 +312,13 @@ class _SpoonacularCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 class _ErrorView extends StatelessWidget {
   final String message;

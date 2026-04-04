@@ -1,4 +1,26 @@
+/// Basic info returned by the search endpoint (id + title only, 1 point/search).
 class SpoonacularRecipe {
+  final int id;
+  final String title;
+  /// Raw image URL from search results — only used when detail is loaded.
+  final String image;
+
+  const SpoonacularRecipe({
+    required this.id,
+    required this.title,
+    required this.image,
+  });
+
+  factory SpoonacularRecipe.fromJson(Map<String, dynamic> json) =>
+      SpoonacularRecipe(
+        id: json['id'] as int,
+        title: json['title'] as String? ?? '',
+        image: json['image'] as String? ?? '',
+      );
+}
+
+/// Full details fetched on demand when the user taps a recipe (1 point/tap).
+class SpoonacularRecipeDetail {
   final int id;
   final String title;
   final String image;
@@ -7,7 +29,7 @@ class SpoonacularRecipe {
   final String summary;
   final String sourceUrl;
 
-  const SpoonacularRecipe({
+  const SpoonacularRecipeDetail({
     required this.id,
     required this.title,
     required this.image,
@@ -17,8 +39,8 @@ class SpoonacularRecipe {
     required this.sourceUrl,
   });
 
-  factory SpoonacularRecipe.fromJson(Map<String, dynamic> json) =>
-      SpoonacularRecipe(
+  factory SpoonacularRecipeDetail.fromJson(Map<String, dynamic> json) =>
+      SpoonacularRecipeDetail(
         id: json['id'] as int,
         title: json['title'] as String? ?? '',
         image: json['image'] as String? ?? '',
