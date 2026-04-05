@@ -58,6 +58,30 @@ class RecipeService {
     return list.map((e) => Recipe.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  /// Fetch only saved (Ням-ням!) recipes for the family.
+  Future<List<Recipe>> getSavedRecipes(String familyId) async {
+    final response = await http.get(
+      Uri.parse('$_base/api/recipes/$familyId?saved=true'),
+      headers: await _headers(),
+    );
+    if (response.statusCode != 200) throw Exception('Ошибка загрузки истории');
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list.map((e) => Recipe.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Mark a recipe as saved (add to История).
+  Future<void> saveRecipe(String familyId, String recipeId) async {
+    final response = await http.patch(
+      Uri.parse('$_base/api/recipes/$familyId/$recipeId'),
+      headers: await _headers(),
+    );
+    if (response.statusCode != 200) {
+      final err = (jsonDecode(response.body) as Map<String, dynamic>?)?['error']
+          ?? 'Ошибка сохранения';
+      throw Exception(err);
+    }
+  }
+
   /// Delete a recipe.
   Future<void> deleteRecipe(String familyId, String recipeId) async {
     await http.delete(

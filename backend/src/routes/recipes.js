@@ -88,21 +88,44 @@ router.post('/generate', authenticate, async (req, res, next) => {
   }
 });
 
-// ── GET /api/recipes/:familyId — list saved recipes ──────────────────────────
+// ── GET /api/recipes/:familyId — list recipes ─────────────────────────────────
+// ?saved=true → only recipes marked via Ням-ням (savedAt is set)
 router.get('/:familyId', authenticate, async (req, res, next) => {
   try {
     const { familyId } = req.params;
+    const onlySaved = req.query.saved === 'true';
     await assertFamilyMember(req.uid, familyId);
 
     const snap = await db
       .collection('recipes')
       .where('familyId', '==', familyId)
       .orderBy('createdAt', 'desc')
-      .limit(50)
+      .limit(100)
       .get();
 
-    const recipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    let recipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (onlySaved) {
+      recipes = recipes.filter((r) => r.savedAt != null);
+    }
     res.json(recipes);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── PATCH /api/recipes/:familyId/:recipeId — mark as saved (Ням-ням!) ────────
+router.patch('/:familyId/:recipeId', authenticate, async (req, res, next) => {
+  try {
+    const { familyId, recipeId } = req.params;
+    await assertFamilyMember(req.uid, familyId);
+
+    const doc = await db.collection('recipes').doc(recipeId).get();
+    if (!doc.exists || doc.data().familyId !== familyId) {
+      return res.status(404).json({ error: 'Recipe not found' });
+    }
+    await doc.ref.update({ savedAt: new Date() });
+    logger.info(`Recipe ${recipeId} saved to history`);
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }

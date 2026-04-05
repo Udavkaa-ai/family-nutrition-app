@@ -10,6 +10,7 @@ import '../family/family_members_screen.dart';
 import '../pantry/pantry_screen.dart';
 import '../recipe/recipe_request_screen.dart';
 import '../recipe/recipe_list_screen.dart';
+import '../recipe/history_screen.dart';
 import '../shopping_list/shopping_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -45,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _FamilyTab(),
       const PantryScreen(),
       const RecipeRequestScreen(),
-      const RecipeListScreen(),
+      const HistoryScreen(),
       const ShoppingListScreen(),
     ];
 

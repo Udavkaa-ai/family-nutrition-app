@@ -1,12 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import '../../config/firebase_config.dart';
 import '../../models/recipe.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/recipe_provider.dart';
+import '../../services/recipe_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
@@ -17,42 +14,29 @@ class RecipeDetailScreen extends StatefulWidget {
 }
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
-  bool _loadingPhoto = false;
+  bool _saving = false;
+  bool _saved = false;
 
-  /// Search Pexels for a photo of this dish by name.
-  /// Backend translates Russian name → English, returns direct Pexels photo URL.
-  Future<void> _findDishPhoto() async {
-    setState(() => _loadingPhoto = true);
+  Future<void> _saveToHistory() async {
+    final familyId = context.read<FamilyProvider>().familyId;
+    if (familyId == null) return;
+
+    setState(() => _saving = true);
     try {
-      final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-      final uri = Uri.parse('${FirebaseConfig.backendUrl}/api/photo/search')
-          .replace(queryParameters: {'query': widget.recipe.name});
-      final response = await http.get(uri, headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      });
-
-      if (!mounted) return;
-
-      if (response.statusCode != 200) {
-        final err = (jsonDecode(response.body) as Map<String, dynamic>?)?['error']
-            ?? 'Ошибка поиска фото';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
-        return;
-      }
-
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final url = data['url'] as String?;
-      if (url == null || url.isEmpty) {
+      await RecipeService().saveRecipe(familyId, widget.recipe.id);
+      if (mounted) {
+        setState(() { _saving = false; _saved = true; });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Фото не найдено для этого блюда')),
+          const SnackBar(
+            content: Text('Сохранено в Историю!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
         );
-        return;
       }
-
-      _showPhotoSheet(url, data['photographer'] as String? ?? '');
     } catch (e) {
       if (mounted) {
+        setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceFirst('Exception: ', '')),
@@ -60,68 +44,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _loadingPhoto = false);
     }
-  }
-
-  void _showPhotoSheet(String photoUrl, String photographer) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Вот как это выглядит',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                photoUrl,
-                width: double.infinity,
-                height: 230,
-                fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) => progress == null
-                    ? child
-                    : const SizedBox(
-                        height: 230,
-                        child: Center(
-                            child: CircularProgressIndicator(color: Colors.green)),
-                      ),
-                errorBuilder: (_, __, ___) => const SizedBox(
-                  height: 100,
-                  child: Center(child: Text('Не удалось загрузить фото')),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              photographer.isNotEmpty
-                  ? 'Фото: $photographer • Pexels'
-                  : 'Фото для вдохновения',
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -147,7 +70,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Meta
+          // Meta chips
           Row(
             children: [
               _MetaChip(
@@ -219,25 +142,30 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               )),
           const SizedBox(height: 24),
 
-          // "Ням-ням!" button — find a photo of this dish on Spoonacular
+          // Ням-ням! — save to История
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _loadingPhoto ? null : _findDishPhoto,
-              icon: _loadingPhoto
+              onPressed: (_saving || _saved) ? null : _saveToHistory,
+              icon: _saving
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('🍽️', style: TextStyle(fontSize: 18)),
+                  : Icon(_saved ? Icons.favorite : Icons.favorite_border),
               label: Text(
-                _loadingPhoto ? 'Ищем фото...' : 'Ням-ням!',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                _saving
+                    ? 'Сохраняем...'
+                    : _saved
+                        ? 'В Истории!'
+                        : 'Ням-ням!',
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: _saved ? Colors.grey : Colors.green,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -265,7 +193,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           TextButton(
             onPressed: () {
               final familyId = context.read<FamilyProvider>().familyId!;
-              context.read<RecipeProvider>().deleteRecipe(familyId, widget.recipe.id);
+              context
+                  .read<RecipeProvider>()
+                  .deleteRecipe(familyId, widget.recipe.id);
               Navigator.of(context)
                 ..pop()
                 ..pop();
@@ -282,8 +212,8 @@ class _MetaChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-
-  const _MetaChip({required this.icon, required this.label, required this.color});
+  const _MetaChip(
+      {required this.icon, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +229,9 @@ class _MetaChip extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          Text(label,
+              style:
+                  TextStyle(color: color, fontWeight: FontWeight.bold)),
         ],
       ),
     );
