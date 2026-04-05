@@ -1,10 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import '../../config/firebase_config.dart';
 import '../../models/recipe.dart';
-import '../../models/spoonacular_recipe.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/recipe_provider.dart';
-import '../../services/spoonacular_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
@@ -17,23 +19,38 @@ class RecipeDetailScreen extends StatefulWidget {
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _loadingPhoto = false;
 
-  /// Search Spoonacular for a photo of this dish.
-  /// The backend auto-translates Cyrillic names to English before querying.
+  /// Search Pexels for a photo of this dish by name.
+  /// Backend translates Russian name → English, returns direct Pexels photo URL.
   Future<void> _findDishPhoto() async {
     setState(() => _loadingPhoto = true);
     try {
-      final results = await SpoonacularService()
-          .searchRecipes(widget.recipe.name, number: 3);
-      final withPhoto = results.where((r) => r.image.isNotEmpty).toList();
+      final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+      final uri = Uri.parse('${FirebaseConfig.backendUrl}/api/photo/search')
+          .replace(queryParameters: {'query': widget.recipe.name});
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      });
 
       if (!mounted) return;
-      if (withPhoto.isEmpty) {
+
+      if (response.statusCode != 200) {
+        final err = (jsonDecode(response.body) as Map<String, dynamic>?)?['error']
+            ?? 'Ошибка поиска фото';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+        return;
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final url = data['url'] as String?;
+      if (url == null || url.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Похожее блюдо не найдено в базе фотографий')),
+          const SnackBar(content: Text('Фото не найдено для этого блюда')),
         );
         return;
       }
-      _showPhotoSheet(withPhoto.first);
+
+      _showPhotoSheet(url, data['photographer'] as String? ?? '');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -48,7 +65,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
-  void _showPhotoSheet(SpoonacularRecipe r) {
+  void _showPhotoSheet(String photoUrl, String photographer) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -60,7 +77,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
             Container(
               width: 40,
               height: 4,
@@ -74,17 +90,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               'Вот как это выглядит',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            const SizedBox(height: 4),
-            Text(
-              r.title,
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                r.image,
+                photoUrl,
                 width: double.infinity,
                 height: 230,
                 fit: BoxFit.cover,
@@ -92,7 +102,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ? child
                     : const SizedBox(
                         height: 230,
-                        child: Center(child: CircularProgressIndicator(color: Colors.green)),
+                        child: Center(
+                            child: CircularProgressIndicator(color: Colors.green)),
                       ),
                 errorBuilder: (_, __, ___) => const SizedBox(
                   height: 100,
@@ -102,7 +113,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Фото для вдохновения — рецепт на русском уже выше',
+              photographer.isNotEmpty
+                  ? 'Фото: $photographer • Pexels'
+                  : 'Фото для вдохновения',
               style: TextStyle(color: Colors.grey[500], fontSize: 12),
             ),
           ],

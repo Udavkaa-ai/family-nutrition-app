@@ -15,6 +15,7 @@ const pantryRoutes = require('./routes/pantry');
 const recipeRoutes = require('./routes/recipes');
 const shoppingListRoutes = require('./routes/shopping-lists');
 const spoonacularRoutes = require('./routes/spoonacular');
+const photoRoutes = require('./routes/photo');
 const { notFound, errorHandler } = require('./middleware/error-handler');
 const logger = require('./utils/logger');
 
@@ -49,6 +50,7 @@ app.use('/api/pantry', pantryRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/shopping-lists', shoppingListRoutes);
 app.use('/api/spoonacular', spoonacularRoutes);
+app.use('/api/photo', photoRoutes);
 
 // ── Error handling (must be last) ─────────────────────────────────────────────
 app.use(notFound);
