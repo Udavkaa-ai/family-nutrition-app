@@ -23,17 +23,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     setState(() => _saving = true);
     try {
-      await RecipeService().saveRecipe(familyId, widget.recipe.id);
-      if (mounted) {
-        setState(() { _saving = false; _saved = true; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Сохранено в Историю!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+      final detailed = await RecipeService().saveRecipe(familyId, widget.recipe.id);
+      if (!mounted) return;
+      setState(() { _saving = false; _saved = true; });
+      // Show detailed recipe in a full-screen sheet
+      _showDetailedRecipe(detailed);
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
@@ -45,6 +39,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         );
       }
     }
+  }
+
+  void _showDetailedRecipe(Map<String, dynamic> detailed) {
+    final steps = List<String>.from(detailed['detailedInstructions'] ?? []);
+    final prepNotes = detailed['prepNotes'] as String? ?? '';
+    final tips = List<String>.from(detailed['cookingTips'] ?? []);
+
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _DetailedRecipeScreen(
+        recipeName: widget.recipe.name,
+        steps: steps,
+        prepNotes: prepNotes,
+        tips: tips,
+      ),
+    ));
   }
 
   @override
@@ -248,4 +257,154 @@ class _SectionHeader extends StatelessWidget {
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold, color: Colors.green),
       );
+}
+
+// ── Detailed step-by-step recipe screen ───────────────────────────────────────
+
+class _DetailedRecipeScreen extends StatelessWidget {
+  final String recipeName;
+  final List<String> steps;
+  final String prepNotes;
+  final List<String> tips;
+
+  const _DetailedRecipeScreen({
+    required this.recipeName,
+    required this.steps,
+    required this.prepNotes,
+    required this.tips,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(recipeName, overflow: TextOverflow.ellipsis),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Saved confirmation banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.favorite, color: Colors.green, size: 18),
+                SizedBox(width: 8),
+                Text('Рецепт сохранён в Историю',
+                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Preparation notes
+          if (prepNotes.isNotEmpty) ...[
+            _Header('Подготовка'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Text(prepNotes,
+                  style: const TextStyle(fontSize: 14)),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Detailed steps
+          _Header('Пошаговый рецепт'),
+          const SizedBox(height: 12),
+          ...steps.asMap().entries.map((e) => _StepCard(
+                number: e.key + 1,
+                text: e.value,
+              )),
+
+          // Cooking tips
+          if (tips.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _Header('Советы шефа'),
+            const SizedBox(height: 8),
+            ...tips.map((tip) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.lightbulb_outline,
+                          size: 18, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: Text(tip,
+                              style: const TextStyle(fontSize: 14))),
+                    ],
+                  ),
+                )),
+          ],
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  final String title;
+  const _Header(this.title);
+
+  @override
+  Widget build(BuildContext context) => Text(
+        title,
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium
+            ?.copyWith(fontWeight: FontWeight.bold, color: Colors.green),
+      );
+}
+
+class _StepCard extends StatelessWidget {
+  final int number;
+  final String text;
+  const _StepCard({required this.number, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: Colors.green,
+            child: Text('$number',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(text, style: const TextStyle(fontSize: 14, height: 1.5)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

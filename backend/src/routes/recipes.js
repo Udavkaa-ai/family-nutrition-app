@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { db, auth } = require('../config/firebase');
-const { generateRecipes } = require('../services/openrouter');
+const { generateRecipes, generateDetailedRecipe } = require('../services/openrouter');
 const logger = require('../utils/logger');
 
 const router = Router();
@@ -113,7 +113,10 @@ router.get('/:familyId', authenticate, async (req, res, next) => {
   }
 });
 
-// ── PATCH /api/recipes/:familyId/:recipeId — mark as saved (Ням-ням!) ────────
+// ── PATCH /api/recipes/:familyId/:recipeId — Ням-ням!: save + detailed guide ──
+// Marks recipe as saved and generates a detailed step-by-step cooking guide.
+// Returns the detailed guide immediately so the app can display it without
+// a second request.
 router.patch('/:familyId/:recipeId', authenticate, async (req, res, next) => {
   try {
     const { familyId, recipeId } = req.params;
@@ -123,9 +126,22 @@ router.patch('/:familyId/:recipeId', authenticate, async (req, res, next) => {
     if (!doc.exists || doc.data().familyId !== familyId) {
       return res.status(404).json({ error: 'Recipe not found' });
     }
-    await doc.ref.update({ savedAt: new Date() });
-    logger.info(`Recipe ${recipeId} saved to history`);
-    res.json({ success: true });
+
+    const recipeData = doc.data();
+
+    // Generate detailed recipe guide via AI
+    const detailed = await generateDetailedRecipe(recipeData);
+
+    // Persist savedAt + detailed fields
+    await doc.ref.update({
+      savedAt: new Date(),
+      detailedInstructions: detailed.detailedInstructions,
+      prepNotes: detailed.prepNotes,
+      cookingTips: detailed.cookingTips,
+    });
+
+    logger.info(`Recipe ${recipeId} saved with detailed guide (${detailed.detailedInstructions.length} steps)`);
+    res.json({ success: true, detailed });
   } catch (err) {
     next(err);
   }

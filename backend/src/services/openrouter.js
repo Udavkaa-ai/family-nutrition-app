@@ -168,4 +168,73 @@ const analyzePantryPhoto = async (base64Image) => {
   return products;
 };
 
-module.exports = { generateRecipes, analyzePantryPhoto };
+/**
+ * Generate a very detailed step-by-step cooking guide for an existing recipe.
+ * Called when user taps "Ням-ням!" to save a recipe.
+ * @param {{ name, ingredients, instructions }} recipe
+ * @returns {Promise<{ detailedInstructions: string[], prepNotes: string, cookingTips: string[] }>}
+ */
+const generateDetailedRecipe = async (recipe) => {
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-3.1-flash-lite-preview';
+
+  const ingredientsList = (recipe.ingredients || [])
+    .map((i) => `${i.name} — ${i.quantity} ${i.unit}`)
+    .join(', ');
+
+  const briefSteps = (recipe.instructions || []).join('; ');
+
+  const prompt = `Ты профессиональный шеф-повар. Создай ОЧЕНЬ подробный пошаговый рецепт на русском языке.
+
+Блюдо: ${recipe.name}
+Ингредиенты: ${ingredientsList}
+Краткие шаги: ${briefSteps}
+
+Требования к ответу:
+- 10-15 подробных шагов
+- Точная температура (°C) где нужна
+- Точное время для каждого шага
+- Строгий порядок добавления ингредиентов
+- Техники приготовления (как нарезать, когда перемешивать и т.д.)
+- Как определить готовность каждого этапа
+
+Верни ТОЛЬКО валидный JSON:
+{
+  "detailed_instructions": ["Шаг 1: ...", "Шаг 2: ...", ...],
+  "prep_notes": "Что подготовить заранее",
+  "cooking_tips": ["Совет 1", "Совет 2"]
+}`;
+
+  const response = await axios.post(
+    OPENROUTER_URL,
+    {
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.4,
+      max_tokens: 2000,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5000',
+        'X-Title': 'Family Nutrition Advisor',
+      },
+      timeout: 30000,
+    }
+  );
+
+  const content = response.data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Empty response from AI');
+
+  const match = content.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON found in detailed recipe response');
+
+  const parsed = JSON.parse(match[0]);
+  return {
+    detailedInstructions: parsed.detailed_instructions || [],
+    prepNotes: parsed.prep_notes || '',
+    cookingTips: parsed.cooking_tips || [],
+  };
+};
+
+module.exports = { generateRecipes, analyzePantryPhoto, generateDetailedRecipe };

@@ -69,8 +69,9 @@ class RecipeService {
     return list.map((e) => Recipe.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  /// Mark a recipe as saved (add to История).
-  Future<void> saveRecipe(String familyId, String recipeId) async {
+  /// Mark a recipe as saved (add to История) and get detailed cooking guide.
+  /// Returns the detailed fields from the backend response.
+  Future<Map<String, dynamic>> saveRecipe(String familyId, String recipeId) async {
     final response = await http.patch(
       Uri.parse('$_base/api/recipes/$familyId/$recipeId'),
       headers: await _headers(),
@@ -80,6 +81,8 @@ class RecipeService {
           ?? 'Ошибка сохранения';
       throw Exception(err);
     }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return data['detailed'] as Map<String, dynamic>? ?? {};
   }
 
   /// Delete a recipe.
