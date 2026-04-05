@@ -27,7 +27,7 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// Translate Cyrillic to English using OpenRouter (reuse existing model)
+// Translate Russian → English using existing OpenRouter/Gemini
 const hasCyrillic = (str) => /[\u0400-\u04FF]/.test(str);
 const translateToEnglish = async (text) => {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -52,42 +52,71 @@ const translateToEnglish = async (text) => {
   }
 };
 
+// Source 1: TheMealDB — free, no API key, 300+ international meals with photos
+const searchTheMealDB = async (query) => {
+  try {
+    const r = await axios.get('https://www.themealdb.com/api/json/v1/1/search.php', {
+      params: { s: query },
+      timeout: 6000,
+    });
+    return r.data.meals?.[0]?.strMealThumb || null;
+  } catch {
+    return null;
+  }
+};
+
+// Source 2: Wikipedia REST API — free, no key, returns article thumbnail
+// Works for any well-known dish that has a Wikipedia article
+const searchWikipedia = async (query) => {
+  try {
+    const title = query.trim().replace(/\s+/g, '_');
+    const r = await axios.get(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+      { timeout: 6000 }
+    );
+    // Prefer the article thumbnail, fall back to original image
+    return r.data.thumbnail?.source || r.data.originalimage?.source || null;
+  } catch {
+    return null;
+  }
+};
+
 // ── GET /api/photo/search?query=DISH_NAME ─────────────────────────────────────
-// Returns { url: "https://..." } or { url: null }
-// Pexels: free, 20 000 req/month, no watermarks
-// Register at https://www.pexels.com/api/ → get your key → add PEXELS_API_KEY to Railway
+// No external API key required. Completely free.
+// Flow: translate (if Russian) → TheMealDB → Wikipedia → null
 router.get('/search', authenticate, async (req, res, next) => {
   try {
     const rawQuery = (req.query.query || '').trim();
     if (!rawQuery) return res.status(400).json({ error: 'query is required' });
 
-    const apiKey = process.env.PEXELS_API_KEY;
-    if (!apiKey) return res.status(503).json({ error: 'Photo search not configured (add PEXELS_API_KEY)' });
+    const cacheKey = `photo:${rawQuery.toLowerCase()}`;
+    const cached = getCached(cacheKey);
+    if (cached) return res.json(cached);
 
-    // Translate if Cyrillic
+    // Translate Russian → English
     let query = rawQuery;
     if (hasCyrillic(query)) {
       query = await translateToEnglish(rawQuery);
       logger.debug(`Photo search: "${rawQuery}" → "${query}"`);
     }
 
-    const cacheKey = `photo:${query.toLowerCase()}`;
-    const cached = getCached(cacheKey);
-    if (cached) return res.json(cached);
+    // 1) TheMealDB — best for well-known dishes
+    let url = await searchTheMealDB(query);
 
-    const response = await axios.get('https://api.pexels.com/v1/search', {
-      params: { query, per_page: 3, orientation: 'landscape' },
-      headers: { Authorization: apiKey },
-      timeout: 8000,
-    });
+    // 2) TheMealDB with just the first keyword (e.g. "chicken" from "chicken with mushrooms")
+    if (!url && query.includes(' ')) {
+      url = await searchTheMealDB(query.split(' ')[0]);
+    }
 
-    const photos = response.data.photos || [];
-    const result = photos.length > 0
-      ? { url: photos[0].src.large, photographer: photos[0].photographer }
-      : { url: null };
+    // 3) Wikipedia thumbnail — broader coverage
+    if (!url) {
+      url = await searchWikipedia(query);
+    }
 
+    const result = { url: url || null };
     setCached(cacheKey, result);
-    logger.info(`Photo search: "${query}" → ${result.url ? 'found' : 'not found'}`);
+
+    logger.info(`Photo search "${rawQuery}": ${url ? 'found' : 'not found'}`);
     res.json(result);
   } catch (err) {
     logger.error('Photo search error:', err.message);
