@@ -90,6 +90,8 @@ router.post('/generate', authenticate, async (req, res, next) => {
 
 // ── GET /api/recipes/:familyId — list recipes ─────────────────────────────────
 // ?saved=true → only recipes marked via Ням-ням (savedAt is set)
+// Note: no orderBy in Firestore query to avoid requiring a composite index.
+// Sorting is done in JS after fetching.
 router.get('/:familyId', authenticate, async (req, res, next) => {
   try {
     const { familyId } = req.params;
@@ -99,15 +101,22 @@ router.get('/:familyId', authenticate, async (req, res, next) => {
     const snap = await db
       .collection('recipes')
       .where('familyId', '==', familyId)
-      .orderBy('createdAt', 'desc')
-      .limit(100)
       .get();
 
     let recipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
     if (onlySaved) {
       recipes = recipes.filter((r) => r.savedAt != null);
     }
-    res.json(recipes);
+
+    // Sort by createdAt descending (newest first), no Firestore index needed
+    recipes.sort((a, b) => {
+      const ta = a.createdAt?.toMillis?.() ?? a.createdAt?._seconds ?? 0;
+      const tb = b.createdAt?.toMillis?.() ?? b.createdAt?._seconds ?? 0;
+      return tb - ta;
+    });
+
+    res.json(recipes.slice(0, 100));
   } catch (err) {
     next(err);
   }
