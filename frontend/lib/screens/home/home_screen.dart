@@ -12,6 +12,7 @@ import '../recipe/recipe_request_screen.dart';
 import '../recipe/recipe_list_screen.dart';
 import '../recipe/history_screen.dart';
 import '../shopping_list/shopping_list_screen.dart';
+import '../meal_plan/meal_plan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _FamilyTab(),
       const PantryScreen(),
       const RecipeRequestScreen(),
+      const MealPlanScreen(),
       const HistoryScreen(),
       const ShoppingListScreen(),
     ];
@@ -59,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.family_restroom), label: 'Семья'),
           NavigationDestination(icon: Icon(Icons.kitchen), label: 'Кладовая'),
           NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Рецепты'),
+          NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Меню'),
           NavigationDestination(icon: Icon(Icons.menu_book), label: 'История'),
           NavigationDestination(icon: Icon(Icons.shopping_cart), label: 'Покупки'),
         ],
